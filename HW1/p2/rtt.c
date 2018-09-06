@@ -5,6 +5,7 @@
 #include <math.h>
 #include <sys/time.h>
 
+
 /* This is the root process */
 #define  ROOT       0
 
@@ -20,6 +21,7 @@ int main (int argc, char *argv[])
         double *elapsedTime;
         double avgelapsedTime[18] = {0};
         double stddev[18] = {0} ;
+        double *finRecvBuff;
         /* current process hostname */
         //char  hostname[MPI_MAX_PROCESSOR_NAME];
 
@@ -77,12 +79,25 @@ int main (int argc, char *argv[])
                         }
                         stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)10);
                         printf("Size = %lf, Average RTT = %lf, Stddev = %lf \n", size, avgelapsedTime[sizecounter-5], stddev[sizecounter-5]);
+                        
                 }
                 free(elapsedTime);
                 sizecounter++;
+
                 //printf("After %d, rank %d\n",sizecounter,rank);
         }
 
+        
+        if(rank == 0){
+                finRecvBuff = (double *)malloc((numproc)*17*sizeof(double));
+        }
+        MPI_Gather(avgelapsedTime,17,MPI_DOUBLE,finRecvBuff,17,MPI_DOUBLE,0,MPI_COMM_WORLD);
+
+        if(rank==0){
+                for(int i = 0;i<(numproc)*17;i++){
+                        printf("%lf\n",finRecvBuff[i]);
+                }
+        }
         /* graceful exit */
         MPI_Finalize();
 
