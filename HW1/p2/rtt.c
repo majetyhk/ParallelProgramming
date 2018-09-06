@@ -69,7 +69,7 @@ int main (int argc, char *argv[])
                         counter++;
                 }
 
-                /*if(rank%2 == 0){
+                if(rank%2 == 0){
                         avgelapsedTime[sizecounter-5] = avgelapsedTime[sizecounter-5]/(double) 10;
                         for(int i = 0;i<counter;i++){
                                 printf("%d\n",i);
@@ -77,7 +77,7 @@ int main (int argc, char *argv[])
                         }
                         stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)10);
                         printf("Size = %lf, Average RTT = %lf, Stddev = %lf \n", size, avgelapsedTime[sizecounter-5], stddev[sizecounter-5]);
-                }*/
+                }
                 free(elapsedTime);
                 sizecounter++;
                 //printf("After %d, rank %d\n",sizecounter,rank);
