@@ -21,7 +21,8 @@ int main (int argc, char *argv[])
         double *elapsedTime;
         double avgelapsedTime[18] = {0};
         double stddev[18] = {0} ;
-        double *finRecvBuff;
+        double *avgRTTBuff;
+        double *stddevBuff;
         /* current process hostname */
         //char  hostname[MPI_MAX_PROCESSOR_NAME];
 
@@ -56,7 +57,13 @@ int main (int argc, char *argv[])
                                 gettimeofday(&t2, NULL);
                                 elapsedTime[counter] = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
                                 elapsedTime[counter] += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
-                                avgelapsedTime[sizecounter-5] += elapsedTime[counter];
+                                //printf("Pair %d,MSize %lf, Count %d, ElapsedTime %lf\n",rank/2,size,counter,elapsedTime[counter]);
+                                if(!(counter==0 && sizecounter==5)){
+                                    avgelapsedTime[sizecounter-5] += elapsedTime[counter];    
+                                }else{
+                                        //printf("Ignored %lf\n",elapsedTime[counter]);
+                                }
+                                
                                 free(message);
                         }
                         else{
@@ -65,20 +72,32 @@ int main (int argc, char *argv[])
                                 message = (char *) malloc(size*sizeof(char));
                                 MPI_Recv(message, size*sizeof(char), MPI_CHAR,source,tag,MPI_COMM_WORLD, &status);
                                 MPI_Send(message,size*sizeof(char),MPI_CHAR,dest,tag,MPI_COMM_WORLD);
-                                printf("%s\n",message);
+                                //printf("%s\n",message);
                                 free(message);
                         }    
                         counter++;
                 }
 
                 if(rank%2 == 0){
-                        avgelapsedTime[sizecounter-5] = avgelapsedTime[sizecounter-5]/(double) 10;
-                        for(int i = 0;i<counter;i++){
-                                printf("%d\n",i);
-                                stddev[sizecounter-5] += (elapsedTime[i] - avgelapsedTime[sizecounter-5])*(elapsedTime[i]-avgelapsedTime[sizecounter-5]);
+                        if(sizecounter == 5){
+                                avgelapsedTime[sizecounter-5] = avgelapsedTime[sizecounter-5]/(double) 9;
+                                for(int i = 1;i<counter;i++){
+                                        //printf("%d\n",i);
+                                        stddev[sizecounter-5] += (elapsedTime[i] - avgelapsedTime[sizecounter-5])*(elapsedTime[i]-avgelapsedTime[sizecounter-5]);
+                                }
+                                stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)9);
                         }
-                        stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)10);
-                        printf("Size = %lf, Average RTT = %lf, Stddev = %lf \n", size, avgelapsedTime[sizecounter-5], stddev[sizecounter-5]);
+                        else{
+                                avgelapsedTime[sizecounter-5] = avgelapsedTime[sizecounter-5]/(double) 10;
+                                for(int i = 0;i<counter;i++){
+                                        //printf("%d\n",i);
+                                        stddev[sizecounter-5] += (elapsedTime[i] - avgelapsedTime[sizecounter-5])*(elapsedTime[i]-avgelapsedTime[sizecounter-5]);
+                                }
+                                stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)10);
+                        }
+                        
+                        
+                        //printf("Size = %lf, Average RTT = %lf, Stddev = %lf \n", size, avgelapsedTime[sizecounter-5], stddev[sizecounter-5]);
                         
                 }
                 free(elapsedTime);
@@ -89,13 +108,19 @@ int main (int argc, char *argv[])
 
         
         if(rank == 0){
-                finRecvBuff = (double *)malloc((numproc)*17*sizeof(double));
+                avgRTTBuff = (double *)malloc((numproc)*17*sizeof(double));
+                stddevBuff = (double *)malloc((numproc)*17*sizeof(double));
         }
-        MPI_Gather(avgelapsedTime,17,MPI_DOUBLE,finRecvBuff,17,MPI_DOUBLE,0,MPI_COMM_WORLD);
+        MPI_Gather(avgelapsedTime,17,MPI_DOUBLE,avgRTTBuff,17,MPI_DOUBLE,0,MPI_COMM_WORLD);
+        MPI_Gather(stddev,17,MPI_DOUBLE,stddevBuff,17,MPI_DOUBLE,0,MPI_COMM_WORLD);
 
         if(rank==0){
+                printf("'Pair','MessageSize','AvgRTT','Stddev'\n");
                 for(int i = 0;i<(numproc)*17;i++){
-                        printf("%lf\n",finRecvBuff[i]);
+                        if((i/17)%2==0){
+                                printf("%d, %lf, %lf, %lf\n",((i/17)/2),pow(2, (i%17)+5 ),avgRTTBuff[i],stddevBuff[i]);
+                        }
+                        
                 }
         }
         /* graceful exit */
