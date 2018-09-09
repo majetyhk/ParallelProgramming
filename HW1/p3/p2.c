@@ -32,7 +32,7 @@ int main (int argc, char *argv[])
 
         int *displs,*rcounts; 
         double *finalDerivBuff;
-        double *tdyc;
+        double *tyc;
         if(argc > 1)
             NGRID = atoi(argv[1]);
         else 
@@ -106,7 +106,7 @@ int main (int argc, char *argv[])
 
         //allocate function arrays
         //tyc  =   (double*) malloc((totalPoints + 2) * sizeof(double));
-        tdyc =   (double*) malloc((totalPoints + 2) * sizeof(double));
+        //tdyc =   (double*) malloc((totalPoints + 2) * sizeof(double));
 
         for( i = startValue; i <= endValue ; i++ )
         {
@@ -134,23 +134,23 @@ int main (int argc, char *argv[])
             tag = rank;
             if(rank+1<numproc){
                 MPI_Recv(yc + (endValue+1),1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD,&status);
-                printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,endValue+1,yc[endValue+1] );
+                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,endValue+1,yc[endValue+1] );
             }
             if(rank!=0){
                 //yc[51] = 2601;
-                printf("YC Value Recv %lf %lf %lf %lf %lf\n",yc[49] ,yc[50] ,yc[51] ,yc[52] ,yc[53]);
+                //printf("YC Value Recv %lf %lf %lf %lf %lf\n",yc[49] ,yc[50] ,yc[51] ,yc[52] ,yc[53]);
                 MPI_Recv(yc + (startValue-1),1, MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&status);
-                printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,startValue-1,yc[startValue-1] );
-                printf("YC Value Recv %lf %lf %lf %lf %lf\n",yc[49] ,yc[50] ,yc[51] ,yc[52] ,yc[53]);
+                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,startValue-1,yc[startValue-1] );
+                //printf("YC Value Recv %lf %lf %lf %lf %lf\n",yc[49] ,yc[50] ,yc[51] ,yc[52] ,yc[53]);
             }
             if(rank+1<numproc){
                 MPI_Send(yc + endValue,1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD);
-                printf("Send_Rank:%d, Ind:%d, %lf\n",rank,endValue,yc[endValue] );
+                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,endValue,yc[endValue] );
             }
             if(rank!=0){
                 MPI_Send(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
                 //printf("Yc Value send %lf",yc[51] );
-                printf("Send_Rank:%d, Ind:%d, %lf\n",rank,startValue,yc[startValue] );
+                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,startValue,yc[startValue] );
             }
             // for( i = startValue; i <= endValue ; i++ )
             // {
@@ -161,19 +161,19 @@ int main (int argc, char *argv[])
             tag = rank-1;
             
             MPI_Send(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-                printf("Send_Rank:%d, Ind:%d, %lf\n",rank,startValue,yc[startValue] );
+                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,startValue,yc[startValue] );
 
             if(rank+1<numproc){
                 MPI_Send(yc + endValue,1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD);
-                printf("Send_Rank:%d, Ind:%d, %lf\n",rank,endValue,yc[endValue] );
+                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,endValue,yc[endValue] );
             }
             if(rank!=0){
                 MPI_Recv(yc +(startValue-1),1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&status);
-                printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,startValue-1,yc[startValue-1] );
+                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,startValue-1,yc[startValue-1] );
             }
             if(rank+1<numproc){
                 MPI_Recv(yc + (endValue + 1),1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD,&status);
-                printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,endValue+1,yc[endValue+1] );
+                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,endValue+1,yc[endValue+1] );
             }  
             
         }
@@ -183,10 +183,10 @@ int main (int argc, char *argv[])
         {
                 dyc[i] = (yc[i + 1] - yc[i - 1])/(2.0 * dx);
                 //printf("i =%d, dyc = %lf\n",i,dyc[i] );
-                tdyc[i-startValue] = dyc[i];
         }
         if(rank==0){
             finalDerivBuff = (double*) malloc((NGRID + 2) * sizeof(double));
+            tyc = (double*) malloc((NGRID + 2) * sizeof(double));
             displs = (int *)malloc(numproc*sizeof(int)); 
             rcounts = (int *)malloc(numproc*sizeof(int));
             for (i=0; i<numproc; ++i) { 
@@ -197,7 +197,7 @@ int main (int argc, char *argv[])
                 else{
                     rcounts[i] = pointsPerProcess;
                 }
-                printf("i %d, Disp %d, RCount %d\n",i,displs[i],rcounts[i] );  
+                //printf("i %d, Disp %d, RCount %d\n",i,displs[i],rcounts[i] );  
             }
         }
         //finalDerivBuff = (double*) malloc((NGRID + 2) * numproc * sizeof(double));
@@ -206,8 +206,9 @@ int main (int argc, char *argv[])
         //MPI_Type_commit( &stype ); 
         double *k;
         k=dyc+startValue;
-        printf("Rank: %d At Start Value: %lf\n",rank,k[0]);
+        //printf("Rank: %d At Start Value: %lf\n",rank,k[0]);
         MPI_Gatherv(dyc+startValue,totalPoints,MPI_DOUBLE,finalDerivBuff,rcounts,displs,MPI_DOUBLE, 0,MPI_COMM_WORLD);
+        MPI_Gatherv(yc+startValue,totalPoints,MPI_DOUBLE,tyc,rcounts,displs,MPI_DOUBLE,0,MPI_COMM_WORLD);
         
         /*if(rank==0){
             for (int i = 0; i < (NGRID+1); ++i)
@@ -230,7 +231,10 @@ int main (int argc, char *argv[])
                 dyc[l] = finalDerivBuff[(NGRID+2)*k+start+l];
             }
         }*/
-        print_function_data(NGRID, &xc[1], &yc[1], &finalDerivBuff[1]);
+        if(rank==0){
+            print_function_data(NGRID, &xc[1], &tyc[0], &finalDerivBuff[0]);
+        }
+        
 
 
         //free allocated memory 
