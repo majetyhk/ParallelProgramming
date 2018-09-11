@@ -21,20 +21,29 @@ int main (int argc, char *argv[])
         int   numproc, rank, len, source, dest;
         char *message;
         int tag;
-        MPI_Status status;
-        struct timeval t1, t2;
+        MPI_Status status,status2;
+  //      struct timeval t1, t2;
         double *elapsedTime;
-        //int *endValues;
         int startValue;
         int endValue;
-        int NGRID;
-        MPI_Datatype stype; 
-
+        int NGRID,communication,mpi_gather;
+        MPI_Datatype stype;
+        MPI_Request req[10]; 
+        struct timeval t1,t2;
         int *displs,*rcounts; 
         double *finalDerivBuff;
         double *tyc;
         if(argc > 1)
+        {
             NGRID = atoi(argv[1]);
+        }
+            if(argc>2){
+            communication = atoi(argv[2]);
+            //printf("NGRID: %d Comm Value %d\n", NGRID, communication);
+        }
+         if(argc > 3){
+		mpi_gather = atoi(argv[3]);
+	    }
         else 
         {
                 printf("Please specify the number of grid points.\n");
@@ -122,125 +131,207 @@ int main (int argc, char *argv[])
         //should be set
         yc[0] = fn(xc[0]);
         yc[imax + 1] = fn(xc[NGRID + 1]);
+        gettimeofday(&t1,NULL);
 
-        //compute the derivative using first-order finite differencing
-        //
-        //  d           f(x + h) - f(x - h)
-        // ---- f(x) ~ --------------------
-        //  dx                 2 * dx
-        //
-        //printf("Yc Value  %lf",yc[51] );
-        if(rank%2==0){
-            tag = rank;
-            if(rank+1<numproc){
-                MPI_Recv(yc + (endValue+1),1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD,&status);
-                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,endValue+1,yc[endValue+1] );
-            }
-            if(rank!=0){
-                //yc[51] = 2601;
-                //printf("YC Value Recv %lf %lf %lf %lf %lf\n",yc[49] ,yc[50] ,yc[51] ,yc[52] ,yc[53]);
-                MPI_Recv(yc + (startValue-1),1, MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&status);
-                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,startValue-1,yc[startValue-1] );
-                //printf("YC Value Recv %lf %lf %lf %lf %lf\n",yc[49] ,yc[50] ,yc[51] ,yc[52] ,yc[53]);
-            }
-            if(rank+1<numproc){
-                MPI_Send(yc + endValue,1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD);
-                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,endValue,yc[endValue] );
-            }
-            if(rank!=0){
-                MPI_Send(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-                //printf("Yc Value send %lf",yc[51] );
-                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,startValue,yc[startValue] );
-            }
-            // for( i = startValue; i <= endValue ; i++ )
-            // {
-            //     printf(" y value %lf %lf \n", yc[i], xc[i]);
-            // }
-        }
-        else{
-            tag = rank-1;
-            
-            MPI_Send(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,startValue,yc[startValue] );
-
-            if(rank+1<numproc){
-                MPI_Send(yc + endValue,1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD);
-                //printf("Send_Rank:%d, Ind:%d, %lf\n",rank,endValue,yc[endValue] );
-            }
-            if(rank!=0){
-                MPI_Recv(yc +(startValue-1),1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&status);
-                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,startValue-1,yc[startValue-1] );
-            }
-            if(rank+1<numproc){
-                MPI_Recv(yc + (endValue + 1),1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD,&status);
-                //printf("Recv_Rank:%d, Ind:%d, %lf\n",rank,endValue+1,yc[endValue+1] );
-            }  
-            
-        }
-
-        
-        for (i = startValue; i <= endValue; i++)
+        if(communication == 0)
         {
-                dyc[i] = (yc[i + 1] - yc[i - 1])/(2.0 * dx);
-                //printf("i =%d, dyc = %lf\n",i,dyc[i] );
+            //printf("Entered into Comm value 0 case\n");
+                if(rank%2==0)
+                {
+                    tag = rank;
+                    if(rank+1<numproc){
+                        MPI_Recv(yc + (endValue+1),1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD,&status);
+                    }
+                    if(rank!=0){
+                        MPI_Recv(yc + (startValue-1),1, MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&status);
+                    }
+                    if(rank+1<numproc){
+                        MPI_Send(yc + endValue,1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD);
+                    }
+                    if(rank!=0){
+                        MPI_Send(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
+                    }
+                }
+                else
+                {
+                    tag = rank-1;
+                    MPI_Send(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
+                    if(rank+1<numproc){
+                        MPI_Send(yc + endValue,1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD);
+                    }
+                    if(rank!=0){
+                        MPI_Recv(yc +(startValue-1),1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&status);
+                    }
+                    if(rank+1<numproc){
+                        MPI_Recv(yc + (endValue + 1),1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD,&status);
+                    }  
+                    
+                }
         }
-        if(rank==0){
-            finalDerivBuff = (double*) malloc((NGRID + 2) * sizeof(double));
-            tyc = (double*) malloc((NGRID + 2) * sizeof(double));
-            displs = (int *)malloc(numproc*sizeof(int)); 
-            rcounts = (int *)malloc(numproc*sizeof(int));
-            for (i=0; i<numproc; ++i) { 
-                displs[i] = i*pointsPerProcess;
-                if(i==numproc-1){
-                    rcounts[i] = pointsPerProcess+remPoints;
+        else
+        {
+            //printf("Entered into Comm value 1 case with Rank %d\n",rank);
+                if(rank%2==0){
+                    tag = rank;
+                    if(rank+1<numproc){
+                        MPI_Irecv(yc + (endValue+1),1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD,&req[0]);
+                    }
+                    if(rank!=0){
+                        MPI_Irecv(yc + (startValue-1),1, MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&req[1]);
+                    }
+                    if(rank+1<numproc){
+                        MPI_Isend(yc + endValue,1,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD,&req[2]);
+                    }
+                    if(rank!=0){
+                        MPI_Isend(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&req[3]);
+                    }
                 }
                 else{
-                    rcounts[i] = pointsPerProcess;
+                    tag = rank-1;
+                    MPI_Isend(yc + startValue,1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&req[4]);
+                    if(rank+1<numproc){
+                        MPI_Isend(yc + endValue,1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD,&req[5]);
+                    }
+                    if(rank!=0){
+                        MPI_Irecv(yc +(startValue-1),1,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD,&req[6]);
+                    }
+                    if(rank+1<numproc){
+                        MPI_Irecv(yc + (endValue + 1),1,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD,&req[7]);
+                    }  
+                    
                 }
-                //printf("i %d, Disp %d, RCount %d\n",i,displs[i],rcounts[i] );  
-            }
         }
-        //finalDerivBuff = (double*) malloc((NGRID + 2) * numproc * sizeof(double));
-
-        //MPI_Type_vector( rcounts[rank], rcounts[rank], , MPI_DOUBLE, &stype); 
-        //MPI_Type_commit( &stype ); 
-        double *k;
-        k=dyc+startValue;
-        //printf("Rank: %d At Start Value: %lf\n",rank,k[0]);
-        MPI_Gatherv(dyc+startValue,totalPoints,MPI_DOUBLE,finalDerivBuff,rcounts,displs,MPI_DOUBLE, 0,MPI_COMM_WORLD);
-        MPI_Gatherv(yc+startValue,totalPoints,MPI_DOUBLE,tyc,rcounts,displs,MPI_DOUBLE,0,MPI_COMM_WORLD);
-        
-        /*if(rank==0){
-            for (int i = 0; i < (NGRID+1); ++i)
+        if(communication !=0)
+        {
+            //printf("Stopping Here before proceeding with Rank %d\n",rank);
+            if(rank%2==0)
             {
-                printf("%d, %lf\n",i,finalDerivBuff[i] );
+                tag = rank;
+                if(rank+1<numproc){
+                    MPI_Wait(&req[0],&status);
+                }
+                if(rank!=0){
+                    MPI_Wait(&req[1],&status);
             }
-        }*/
-        /*int k = 0;
-        int l =0;
-        for( k = 0; k< numproc-1 ; k++){
-            int start = k*pointsPerProcess +1;
-            int end;
-            if(k==numproc-1){
-                end = NGRID;
             }
             else{
-                end = start + pointsPerProcess;
-            }
-            for( l=start; l<end; l++){
-                dyc[l] = finalDerivBuff[(NGRID+2)*k+start+l];
-            }
-        }*/
-        if(rank==0){
-            print_function_data(NGRID, &xc[1], &tyc[0], &finalDerivBuff[0]);
+                    tag = rank-1;
+                    if(rank!=0){
+                        MPI_Wait(&req[6],&status);
+                    }
+                    if(rank+1<numproc){
+                        MPI_Wait(&req[7],&status);
+                    }  
+                    
+                }
         }
-        
 
+                 //compute the derivative using first-order finite differencing       
+        for (i = startValue; i <= endValue; i++)
+        {
+            dyc[i] = (yc[i + 1] - yc[i - 1])/(2.0 * dx);
+        }
+        if(mpi_gather==1 && communication == 0)
+        {
+            //printf("\n******** manual gather *********\n");
+        	if(rank>0){
+        	    MPI_Send(yc+startValue,endValue-startValue+1,MPI_DOUBLE,0,50,MPI_COMM_WORLD);
+        	    MPI_Send(dyc+startValue,endValue-startValue+1,MPI_DOUBLE,0,50,MPI_COMM_WORLD);
+        	}
+            if(rank==0) 
+            {
+        	    double* all_arrays = (double*)malloc(NGRID*sizeof(double));
+        	    double* all_arrays_yc = (double*)malloc(NGRID*sizeof(double));
+                for(int i=startValue;i<=endValue;i++)
+        	    {
+        		    all_arrays[i]=dyc[i];
+        		    all_arrays_yc[i]=yc[i];
+        	    }
+
+        	    for (int i=1; i<numproc-1; i++)
+                {
+        		    MPI_Recv(&all_arrays_yc[endValue+1+((i-1)*(endValue-startValue+1))],endValue-startValue+1,MPI_DOUBLE,i,50,MPI_COMM_WORLD,&status);
+        		    MPI_Recv(&all_arrays[endValue+1+((i-1)*(endValue-startValue+1))],endValue-startValue+1,MPI_DOUBLE,i,50,MPI_COMM_WORLD,&status);
+        	    }
+                MPI_Recv(&all_arrays_yc[((numproc-1)*(endValue-startValue+1))+1],NGRID-((numproc-1)*startValue)+1,MPI_DOUBLE,numproc-1,50,MPI_COMM_WORLD,&status);
+        		MPI_Recv(&all_arrays[((numproc-1)*(endValue-startValue+1))+1],NGRID-((numproc-1)*startValue)+1,MPI_DOUBLE,numproc-1,50,MPI_COMM_WORLD,&status);
+        	    print_function_data(NGRID, &xc[1], &all_arrays_yc[1], &all_arrays[1]);
+        	}
+        }
+        else if(mpi_gather==1 && communication == 1)
+        {
+           //printf("\n******** manual gather with non blocking function calls *********\n");
+        	if(rank>0){
+        	    MPI_Isend(yc+startValue,endValue-startValue+1,MPI_DOUBLE,0,50,MPI_COMM_WORLD,&req[8]);
+        	    MPI_Isend(dyc+startValue,endValue-startValue+1,MPI_DOUBLE,0,50,MPI_COMM_WORLD,&req[9]);
+        	}
+            if(rank==0) 
+            {
+        	    double* all_arrays = (double*)malloc(NGRID*sizeof(double));
+        	    double* all_arrays_yc = (double*)malloc(NGRID*sizeof(double));
+                for(int i=startValue;i<=endValue;i++)
+        	    {
+        		    all_arrays[i]=dyc[i];
+        		    all_arrays_yc[i]=yc[i];
+        	    }
+                MPI_Request req2[numproc], req3[numproc];
+        	    for (int i=1; i<numproc-1; i++)
+                {
+        		    MPI_Irecv(&all_arrays_yc[endValue+1+((i-1)*(endValue-startValue+1))],endValue-startValue+1,MPI_DOUBLE,i,50,MPI_COMM_WORLD,&req2[i]);
+        		    MPI_Irecv(&all_arrays[endValue+1+((i-1)*(endValue-startValue+1))],endValue-startValue+1,MPI_DOUBLE,i,50,MPI_COMM_WORLD,&req3[i]);
+        	    }
+                MPI_Irecv(&all_arrays_yc[((numproc-1)*(endValue-startValue+1))+1],NGRID-((numproc-1)*startValue)+1,MPI_DOUBLE,numproc-1,50,MPI_COMM_WORLD,&req2[numproc-1]);
+        		MPI_Irecv(&all_arrays[((numproc-1)*(endValue-startValue+1))+1],NGRID-((numproc-1)*startValue)+1,MPI_DOUBLE,numproc-1,50,MPI_COMM_WORLD,&req3[numproc-1]);
+        	    
+                for(int i=1; i<numproc;i++)
+                {
+                    MPI_Wait(&req2[i],&status);
+                    MPI_Wait(&req3[i],&status);
+                }
+        	    print_function_data(NGRID, &xc[1], &all_arrays_yc[1], &all_arrays[1]);
+        	} 
+        }
+        else
+        {
+            //printf("\n********* MPI_GATHER *******\n");
+            if(rank==0)
+            {
+                finalDerivBuff = (double*) malloc((NGRID + 2) * sizeof(double));
+                tyc = (double*) malloc((NGRID + 2) * sizeof(double));
+                displs = (int *)malloc(numproc*sizeof(int)); 
+                rcounts = (int *)malloc(numproc*sizeof(int));
+                for (i=0; i<numproc; ++i) 
+                { 
+                    displs[i] = i*pointsPerProcess;
+                    if(i==numproc-1)
+                    {
+                        rcounts[i] = pointsPerProcess+remPoints;
+                    }
+                    else
+                    {
+                        rcounts[i] = pointsPerProcess;
+                    }
+                }
+            }  
+            double *k;
+            k=dyc+startValue;
+            MPI_Gatherv(dyc+startValue,totalPoints,MPI_DOUBLE,finalDerivBuff,rcounts,displs,MPI_DOUBLE, 0,MPI_COMM_WORLD);
+            MPI_Gatherv(yc+startValue,totalPoints,MPI_DOUBLE,tyc,rcounts,displs,MPI_DOUBLE,0,MPI_COMM_WORLD);
+            if(rank==0)
+            {
+                print_function_data(NGRID, &xc[1], &tyc[0], &finalDerivBuff[0]);
+            }
+        }  
+        gettimeofday(&t2,NULL);
+        double timeInterval = ((t2.tv_sec - t1.tv_sec) * 1000.0);
+        timeInterval += (t2.tv_usec - t1.tv_usec) / 1000.0;
+        if(rank==0){
+            printf("\nTime taken = %lf\n",timeInterval);
+        }
 
         //free allocated memory 
         free(yc);
         free(dyc);
-
 
         /* graceful exit */
         MPI_Finalize();
@@ -260,8 +351,8 @@ void print_function_data(int np, double *x, double *y, double *dydx)
 
         for(i = 0; i < np; i++)
         {
-                printf("%f %f %f\n", x[i], y[i], dydx[i]);
-                fprintf(fp, "%f %f %f\n", x[i], y[i], dydx[i]);
+//                printf("%f %f %f\n", x[i], y[i], dydx[i]);
+            fprintf(fp, "%f, %f, %f\n", x[i], y[i], dydx[i]);
         }
 
         fclose(fp);
