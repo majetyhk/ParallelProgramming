@@ -1,3 +1,12 @@
+/*
+Single Author info:
+hmajety  Hari Krishna Majety
+Group info:
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"

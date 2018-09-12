@@ -36,12 +36,14 @@ int main (int argc, char *argv[])
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         //tag = rank;
         int counter = 0;
+        int escapeFlag = 1;
         double size;
         int sizecounter = 5;
         while(sizecounter< 22){
                 size = pow(2 , sizecounter);
                 //printf("Before %d, rank %d\n",sizecounter,rank);
                 counter = 0;
+
                 elapsedTime = (double *)calloc(10,sizeof(double));
                 while(counter<10){
                         if(rank % 2  ==0){
@@ -58,10 +60,14 @@ int main (int argc, char *argv[])
                                 elapsedTime[counter] = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
                                 elapsedTime[counter] += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
                                 //printf("Pair %d,MSize %lf, Count %d, ElapsedTime %lf\n",rank/2,size,counter,elapsedTime[counter]);
-                                if(!(counter==0 && sizecounter==5)){
-                                    avgelapsedTime[sizecounter-5] += elapsedTime[counter];    
+                                if(!(sizecounter==5 && escapeFlag==1)){
+                                    avgelapsedTime[sizecounter-5] += elapsedTime[counter];
+                                    counter++;    
                                 }else{
                                         //printf("Ignored %lf\n",elapsedTime[counter]);
+                                        escapeFlag = 0;
+                                        free(message);
+                                        //continue;
                                 }
                                 
                                 free(message);
@@ -74,12 +80,18 @@ int main (int argc, char *argv[])
                                 MPI_Send(message,size*sizeof(char),MPI_CHAR,dest,tag,MPI_COMM_WORLD);
                                 //printf("%s\n",message);
                                 free(message);
+                                if(!(sizecounter==5 && escapeFlag==1)){
+                                        counter++;
+                                }else{
+                                        escapeFlag = 0;
+                                }
+                                
                         }    
-                        counter++;
+                        
                 }
 
                 if(rank%2 == 0){
-                        if(sizecounter == 5){
+                        /*if(sizecounter == 5){
                                 avgelapsedTime[sizecounter-5] = avgelapsedTime[sizecounter-5]/(double) 9;
                                 for(int i = 1;i<counter;i++){
                                         //printf("%d\n",i);
@@ -94,8 +106,13 @@ int main (int argc, char *argv[])
                                         stddev[sizecounter-5] += (elapsedTime[i] - avgelapsedTime[sizecounter-5])*(elapsedTime[i]-avgelapsedTime[sizecounter-5]);
                                 }
                                 stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)10);
+                        }*/
+                        avgelapsedTime[sizecounter-5] = avgelapsedTime[sizecounter-5]/(double) 10;
+                        for(int i = 0;i<counter;i++){
+                                //printf("%d\n",i);
+                                stddev[sizecounter-5] += (elapsedTime[i] - avgelapsedTime[sizecounter-5])*(elapsedTime[i]-avgelapsedTime[sizecounter-5]);
                         }
-                        
+                        stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)10);
                         
                         //printf("Size = %lf, Average RTT = %lf, Stddev = %lf \n", size, avgelapsedTime[sizecounter-5], stddev[sizecounter-5]);
                         
@@ -115,12 +132,18 @@ int main (int argc, char *argv[])
         MPI_Gather(stddev,17,MPI_DOUBLE,stddevBuff,17,MPI_DOUBLE,0,MPI_COMM_WORLD);
 
         if(rank==0){
-                printf("'Pair','MessageSize','AvgRTT','Stddev'\n");
+                /*printf("'Pair','MessageSize','AvgRTT','Stddev'\n");
                 for(int i = 0;i<(numproc)*17;i++){
                         if((i/17)%2==0){
                                 printf("%d, %lf, %lf, %lf\n",((i/17)/2),pow(2, (i%17)+5 ),avgRTTBuff[i],stddevBuff[i]);
                         }
                         
+                }*/
+                printf("'MessageSize','AvgRTT1','Stddev1','AvgRTT2','Stddev2','AvgRTT3','Stddev3','AvgRTT4','Stddev4'\n");
+                for (int i = 0; i < 17; ++i)
+                {
+                        /* code */
+                        printf("%lf , %lf, %lf , %lf, %lf, %lf, %lf, %lf, %lf \n",pow(2, (i%17)+5 ) ,avgRTTBuff[i],stddevBuff[i], avgRTTBuff[i+17*2],stddevBuff[i+17*2], avgRTTBuff[i+17*4],stddevBuff[i+17*4], avgRTTBuff[i+17*6],stddevBuff[i+17*6]);
                 }
         }
         /* graceful exit */
