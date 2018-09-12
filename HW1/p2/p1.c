@@ -119,7 +119,7 @@ int main (int argc, char *argv[])
 
         if(rank==0){ // Due to nature of MPI_Gather, we collect from all processes though even processes is where we are calculating the values. So print only the relevant values. Skip values corresponding to odd processes.
 
-
+                //Print method 1
                 /*printf("'Pair','MessageSize','AvgRTT','Stddev'\n");
                 for(int i = 0;i<(numproc)*17;i++){
                         if((i/17)%2==0){
@@ -127,6 +127,8 @@ int main (int argc, char *argv[])
                         }
                         
                 }*/
+
+                //Print method 2 
                 printf("'MessageSize','AvgRTT1','Stddev1','AvgRTT2','Stddev2','AvgRTT3','Stddev3','AvgRTT4','Stddev4'\n");
                 for (int i = 0; i < 17; ++i)
                 {

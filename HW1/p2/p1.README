@@ -6,7 +6,7 @@ srout Sweta Rout
 mreddy2 Harshavardhan Reddy Muppidi
 
 Solution in Brief:
-1) Consider all the even processes as senders and odd processes as receivers of the message. 
+1) Consider all the even processes as senders and odd processes as receivers of the message. At present the number of processes is expected to be 8 and code is written accordingly. If the number of processes changed to some other even number, code might still work but the printing routine needs a change to print the results. Can be done by uncommenting the print method 1 and commenting the print method 2. This is untested as it is beyond the scope of the assignment.
 2) Note the Round trip times by sending a series of messages of various sizes from senders to receivers and circulating the same message back from receivers to senders. Repeat the process for multiple iterations and note the values.
 3) Calculate the Avg Round Trip Time and standard deviation at each sender process(even process).
 4) Collect the AvgRTT and StdDev values for each message size between each pair of nodes into the root process and print them.
@@ -18,3 +18,9 @@ Step 2:
 make -f p1.Makefile	(Runs the makefile)
 Step 3:
 Execute command "prun ./p1"
+
+Ouput:
+The program outputs the results in the console with AvgRTT and Std Dev values for each pair of nodes.
+
+Observations and Comments :
+We could observe that the 32byte communications taking noticeably more time than 64 and some other sizes. This could be due to them being the first communication between the two nodes. For this reason we skipped counting the first communication in the average and standard deviation computation but the difference is still visible as we observed that even the second communication taking longer than normal durations. 
