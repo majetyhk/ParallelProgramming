@@ -1,0 +1,20 @@
+Single Author info:
+hmajety	 Hari Krishna Majety
+Group info:
+hmajety	 Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+
+Solution in Brief:
+1) Consider all the even processes as senders and odd processes as receivers of the message. 
+2) Note the Round trip times by sending a series of messages of various sizes from senders to receivers and circulating the same message back from receivers to senders. Repeat the process for multiple iterations and note the values.
+3) Calculate the Avg Round Trip Time and standard deviation at each sender process(even process).
+4) Collect the AvgRTT and StdDev values for each message size between each pair of nodes into the root process and print them.
+
+How to Compile and Run:
+Step1:
+Copy file p1.c into a folder
+Step 2:
+make -f p1.Makefile	(Runs the makefile)
+Step 3:
+Execute command "prun ./p1"
