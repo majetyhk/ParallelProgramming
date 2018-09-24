@@ -44,29 +44,35 @@ int main(int argc, char** argv){
 	int numElements = atoi(argv[1]);
 	size_t size = numElements * sizeof(float);
 	float *dX, *dY, *dZ, *hZ;
+	//float *hX. *hY;
 	cudaMalloc((void **)&dX, size);
 	cudaMalloc((void **)&dY, size);
 	cudaMalloc((void **)&dZ, size);
 	hZ = (float *)malloc(size);
+	//hX = (float *)malloc(size);
+	//hY = (float *)malloc(size);
 	curandState *devStates;
 	cudaMalloc((void **)&devStates, numElements * sizeof(curandState));
 	//Cuda Configuration
 	int threadsPerBlock = 256;
 	int nBlocks = (numElements+threadsPerBlock-1)/threadsPerBlock;
+	printf("%d\n", nBlocks);
 	setup_kernel<<<nBlocks,threadsPerBlock>>>(devStates,numElements);
 	getMonteCarloVal<<<nBlocks,threadsPerBlock>>>(dX, dY, dZ, devStates, numElements);
-	cudaMemcpy(hZ, dZ, numElements, cudaMemcpyDeviceToHost);
+	cudaMemcpy(hZ, dZ, numElements*sizeof(float), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(hX, dX, numElements*sizeof(float), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(hY, dY, numElements*sizeof(float), cudaMemcpyDeviceToHost);
 	int count = 0;
 	for (int i = 0; i < numElements; ++i)
 	{
 		count=count+hZ[i];
-		printf("%f\n", hZ[i]);
+		//printf("%f,%f - %f\n",hX[i],hY[i],hZ[i]);
 	}
-	printf("%d\n",count);
+	//printf("%d\n",count);
 	printf("The approximate value of Pi is %f\n", ((float)count/numElements)*4 );
 	cudaFree(dX);
-	cudaFree(dY);
-	cudaFree(dZ);
+	//cudaFree(dY);
+	//cudaFree(dZ);
 	free(hZ);
 	cudaDeviceReset();
 	return 0;
