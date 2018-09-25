@@ -141,34 +141,40 @@ void run_gpu(double *u, double *u0, double *u1, double *pebbles, int n, double h
   CUDA_CALL(cudaMemcpy(cd,uc, n*n*sizeof(double), cudaMemcpyHostToDevice));
   CUDA_CALL(cudaMemcpy(pebblesd,pebbles, n*n*sizeof(double), cudaMemcpyHostToDevice));
   double *temp;
-  int count=0;
+  //int count=0;
   while(1){
     evolve_GPU<<<nBlocks,threadsPerBlock>>>(nd,cd,od,pebblesd,n,h,dt,t,nthreads);
     temp = od;
     od = cd;
     cd = nd;
-    printf(" %lf\n", t);
+    //printf(" %lf\n", t);
     if(!tpdt(&t,dt,end_time)) break;
     nd = temp;
   }
-  printf("%lf,%lf",sizeof(u),u[1]);
+  //printf("%lf,%lf",sizeof(u),u[1]);
   cudaMemcpy(u,nd, n*n*sizeof(double), cudaMemcpyDeviceToHost);
         /* Stop GPU computation timer */
-  for (int i = 0; i < n;  ++i)
+  /*for (int i = 0; i < n;  ++i)
   {
     for (int j = 0; j < n; ++j)
     {
       printf("%lf\n", u[i*n+j]);
     }
-  }
+  }*/
 	CUDA_CALL(cudaEventRecord(kstop, 0));
 	CUDA_CALL(cudaEventSynchronize(kstop));
 	CUDA_CALL(cudaEventElapsedTime(&ktime, kstart, kstop));
 	printf("GPU computation: %f msec\n", ktime);
 
 	/* HW2: Add post CUDA kernel call processing and cleanup here */
-
+  CUDA_CALL(cudaFree(od));
+  CUDA_CALL(cudaFree(cd));
+  CUDA_CALL(cudaFree(temp));
+  CUDA_CALL(cudaFree(pebblesd));
+  free(uc);
+  free(uo);
 	/* timer cleanup */
 	CUDA_CALL(cudaEventDestroy(kstart));
 	CUDA_CALL(cudaEventDestroy(kstop));
+  CUDA_CALL(cudaDeviceReset());
 }
