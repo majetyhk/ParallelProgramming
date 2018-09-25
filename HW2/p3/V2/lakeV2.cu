@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
 
 
   print_heatmap("lake_f.dat", u_cpu, npoints, h);
+  print_heatmap("lake_f_gpu.dat", u_gpu, npoints, h);
 
   free(u_i0);
   free(u_i1);

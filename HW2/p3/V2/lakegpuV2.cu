@@ -69,11 +69,28 @@ inline void __cudaCheckError( const char *file, const int line )
 }
 
 __global__ void evolve_GPU(double *un, double *uc, double *uo, double *pebbles, int n, double h, double dt, double t, int nThreads){
-  int idx = blockIdx.x*(nThreads*nThreads)+threadIdx.x;
+  int idx = blockIdx.x*blockDim.x+threadIdx.x;
+  int i, j;
+  i = idx % n;
+  j = idx /n;
   if(idx<n*n){
-    un[idx] = 2*uc[idx] - uo[idx] + VSQR *(dt * dt) *((uc[idx-1] + uc[idx+1] + 
-                    uc[idx + n] + uc[idx - n]  + 0.25*(uc[idx + n - 1] + uc[idx + n + 1] + uc[idx - n - 1] + uc[idx - n + 1]) - 
-                    5 * uc[idx])/(h * h) + (double)(-__expf(-TSCALE * (float)t) * pebbles[idx]));
+    if( i == 0 || i == n - 1 || j == 0 || j == n - 1)
+    {
+      un[idx] = 0.;
+    }
+    else{
+      un[idx] = 2*uc[idx] - uo[idx] + VSQR *(dt * dt) *((uc[idx-1] + uc[idx+1] + 
+                  uc[idx + n] + uc[idx - n]  + 0.25*(uc[idx + n - 1] + uc[idx + n + 1] + uc[idx - n - 1] + uc[idx - n + 1]) - 
+                  5 * uc[idx])/(h * h) + (double)(-__expf(-TSCALE * (float)t) * pebbles[idx]));
+        
+        //un[idx] = 5;
+        /*un[idx] = 2*uc[idx] - uo[idx] + VSQR *(dt * dt) *((uc[idx-1] + uc[idx+1] + 
+                   uc[idx + n] + uc[idx - n] -  4 * uc[idx])/(h * h) + (double)(-__expf(-TSCALE * (float)t) ));*/
+
+
+    }
+    
+      
   }
 }
 
@@ -83,7 +100,7 @@ void run_gpu(double *u, double *u0, double *u1, double *pebbles, int n, double h
 	float ktime;
         
 	/* HW2: Define your local variables here */
-  double *uc, *uo, *nd, *cd, *od;
+  double *uc, *uo, *nd, *cd, *od, *pebblesd;
   double t, dt;
 
   //un = (double*)malloc(sizeof(double) * n * n);
@@ -93,9 +110,12 @@ void run_gpu(double *u, double *u0, double *u1, double *pebbles, int n, double h
   memcpy(uo, u0, sizeof(double) * n * n);
   memcpy(uc, u1, sizeof(double) * n * n);
 
-  t = 0.;
+  t = 0.0;
   dt = h / 2.;
-
+  /*for (int i = 0; i < n*n; ++i)
+  {
+    printf("%d - %lf; ",i, pebbles[i]);
+  }*/
   /* Set up device timers */  
 	CUDA_CALL(cudaSetDevice(0));
 	CUDA_CALL(cudaEventCreate(&kstart));
@@ -115,23 +135,32 @@ void run_gpu(double *u, double *u0, double *u1, double *pebbles, int n, double h
 	CUDA_CALL(cudaMalloc((void **)&od, n*n*sizeof(double)));
   CUDA_CALL(cudaMalloc((void **)&cd, n*n*sizeof(double)));
   CUDA_CALL(cudaMalloc((void **)&nd, n*n*sizeof(double)));
+  CUDA_CALL(cudaMalloc((void **)&pebblesd, n*n*sizeof(double)));
 
   CUDA_CALL(cudaMemcpy(od,uo, n*n*sizeof(double), cudaMemcpyHostToDevice));
   CUDA_CALL(cudaMemcpy(cd,uc, n*n*sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CALL(cudaMemcpy(pebblesd,pebbles, n*n*sizeof(double), cudaMemcpyHostToDevice));
   double *temp;
   int count=0;
   while(1){
-    evolve_GPU<<<nBlocks, threadsPerBlock >>>(nd, cd, od, pebbles, n, h, dt, t, nthreads);
+    evolve_GPU<<<nBlocks,threadsPerBlock>>>(nd,cd,od,pebblesd,n,h,dt,t,nthreads);
     temp = od;
     od = cd;
     cd = nd;
-    printf(" %ld\n", t);
+    printf(" %lf\n", t);
     if(!tpdt(&t,dt,end_time)) break;
     nd = temp;
   }
-  printf("%ld,%ld",sizeof(u),u[1]);
-  CUDA_CALL(cudaMemcpy(u,cd, n*n*sizeof(double), cudaMemcpyDeviceToHost));
+  printf("%lf,%lf",sizeof(u),u[1]);
+  cudaMemcpy(u,nd, n*n*sizeof(double), cudaMemcpyDeviceToHost);
         /* Stop GPU computation timer */
+  for (int i = 0; i < n;  ++i)
+  {
+    for (int j = 0; j < n; ++j)
+    {
+      printf("%lf\n", u[i*n+j]);
+    }
+  }
 	CUDA_CALL(cudaEventRecord(kstop, 0));
 	CUDA_CALL(cudaEventSynchronize(kstop));
 	CUDA_CALL(cudaEventElapsedTime(&ktime, kstart, kstop));
