@@ -1,2 +1,2 @@
-mpimake: p1.c
-	mpicc -lm -O3 -o p1 p1.c my_mpi.c
+mpimake: my_rtt.c my_mpi.c
+	mpicc -lm -O3 -o my_rtt my_rtt.c my_mpi.c

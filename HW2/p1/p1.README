@@ -1,0 +1,13 @@
+Author: Hari Krishna Majety
+
+
+Instructions to compile and run
+1) make -f p1.Makefile	
+2) ./my_prun ./my_rtt	
+
+Analysis and comparision with HW1 Problem2:
+
+My MPI functions are implemented using socket programming which includes establishing a TCP connection between two nodes. 
+This is observed to be taken nearly 10 times longer when compared to the MPI library functions as seen in HW1 Problem 2. 
+This is because, handling multiple connections accross various nodes is complex and consumes more time.
+The average time taken to complete execution of this problem is 25 seconds.

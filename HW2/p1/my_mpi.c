@@ -10,13 +10,6 @@
 
 int sockfd,sockfd_root; 
 
-/*void error(const char *msg)
-{
-    perror(msg);
-    exit(0);
-}*/
-
-
 char *numToString(int num, char *str)
 {
 	if(str == NULL)
@@ -31,6 +24,12 @@ char *numToString(int num, char *str)
 int MPI_Comm_rank(MPI_Comm comm, int *rank)
 {
     *rank = comm.rank;
+    return 0;
+}
+
+int MPI_Comm_size(MPI_Comm comm, int *size)
+{
+    *size = comm.size;
     return 0;
 }
 
@@ -68,13 +67,6 @@ int createSocket(char* fname){
     fprintf(file, "%d",myPort);
     fclose(file);
     return sock;
-}
-
-
-int MPI_Comm_size(MPI_Comm comm, int *size)
-{
-    *size = comm.size;
-    return 0;
 }
 
 
