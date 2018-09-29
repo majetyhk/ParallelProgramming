@@ -1,0 +1,4 @@
+#!/bin/bash
+
+make -f p1.Makefile
+./my_prun -n 4 ./p1 

@@ -2,12 +2,17 @@
 
 #Usage: ./simple_my_prun [CMD]
 
-[ $# -ne 1 ] && { echo "Usage: $0 [cmd]"; exit 1; }
+[ $# -ne 3 ] && { echo "Usage: $0 [cmd]"; exit 1; }
+
+#clean up before start
 
 # Set some variables
-CMD=$1
+CMD=$3
+P=$2
 NODEFILE=nodefile.txt
 PWD=$(pwd)
+FILE=$PWD"/nodefile.txt"
+#echo $FILE
 
 # Parse $SLURM_NODELIST into an iterable list of node names
 echo $SLURM_NODELIST | tr -d c | tr -d [ | tr -d ] | perl -pe 's/(\d+)-(\d+)/join(",",$1..$2)/eg' | awk 'BEGIN { RS=","} { print "c"$1 }' > $NODEFILE
@@ -19,15 +24,18 @@ echo $SLURM_NODELIST | tr -d c | tr -d [ | tr -d ] | perl -pe 's/(\d+)-(\d+)/joi
 
 rank=0
 for curNode in `cat $NODEFILE`; do
-  ssh -n $curNode "cd $PWD;$CMD $curNode $rank" & pid[$rank]=$!
+  ssh -n $curNode "cd $PWD;$CMD $rank $PWD $P $curNode" & pid[$rank]=$!
+#echo $curNode $PWD $CMD $curNode $rank
   (( rank++ ))
 done
 
 #wait for each ssh / corresponding CMD to finish executing before exiting
 rank=0
 for curNode in `cat $NODEFILE`; do
+#echo $curNode "WAITING"
   wait ${pid[$rank]}
   (( rank++ ))
 done
 
 rm $NODEFILE
+rm *.txt
