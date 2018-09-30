@@ -1,0 +1,79 @@
+Single Author info:
+srout	Sweta Rout
+
+Group info:
+hmajety	 Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+
+V1 and V2 code are combined into one version as V2 code is built on top of V1 code.
+
+How to Compile and Run:
+FOR V1/V2 
+1)make -f p3V1V2.Makefile	(Runs the makefile)
+2)./lake {npoints} {npebbles} {end_time} {nthreads}
+
+FOR V4
+1)make -f p3V4.Makefile	(Runs the makefile)
+2)prun ./lake {npoints} {npebbles} {end_time} {nthreads}
+
+
+Observations:
+V1 :
+EndTime 	GridSize 	5pt			9pt
+---------------------------------------------
+1			  128		0.283290	0.273982 
+2			  128		0.556593	0.549870
+3			  128		0.832804	0.821650
+4			  128		1.111166	1.094068
+10			  128		2.781148	2.728967
+20			  128		5.550548	5.459292
+
+9pt results are a bit faster as compared to 5 pt for grid size 128 and varying endtimes.
+
+--------------------------------------------------------------------------------------------
+V2 & V4 : 
+How well does your algorithm scale on the GPU? 
+Do you find cases (grid size, thread number, etc.) where the GPU implementation does not scale well? Why?
+
+Usually, we observed that GPU computations are faster as compared to that of CPU. To verify we ran our code for multiple grid sizes and the results are below:
+
+./lake 16 9 1.0 8
+Running ./lake with (16 x 16) grid, until 1.000000, with 8 threads
+CPU took 0.000625 seconds
+GPU took 0.325739 seconds
+
+./lake 128 9 1.0 8
+Running ./lake with (128 x 128) grid, until 1.000000, with 8 threads
+CPU took 0.273586 seconds
+GPU took 0.401276 seconds
+
+Running ./lake with (256 x 256) grid, until 1.000000, with 8 threads
+CPU took 2.285374 seconds
+GPU took 0.414074 seconds
+
+We conclude that GPU implementation does not scale well for smaller grid sizes. This is because GPU involves  alot of resources and copying data from CPU to GPU causes a lot of overhead.
+When the grid size is small, it could be computed on cpu rather than involving gpu.
+
+In the serial code, compare your CPU and GPU runtimes for different grid sizes. When is the GPU better, and when is it worse?
+GridSize		CPU			GPU
+----------------------------------------
+  16		  0.000625	 0.325739
+  128		  0.273586	 0.401276
+  256		  2.285374	 0.414074
+  
+GPU performance is better for grid size = 256 and worse for grid size = 16. This is because for grid size = 16, it is an overhead to copy the data
+to device and copy it back. While for grid size = 256, the overhead is less compared to the running time for serial code in cpu.
+
+ 
+Integrating CUDA and MPI involves more sophisticated code. What problems did you encounter? How did you fix them?
+
+In case of Cuda and MPI Implementation, few chalenges we faced were majorly with respect to calculating the exact indices 
+for the points to be passed to other ranks and the boundary conditions. While one other thing was deciding on the way the 
+Lake is to be split for easier MPI Communications. We have decided to split it horizontally into 4 parts since splitting into
+blocks would incur repetition of points through message passing which again needs to be handled carefully with the given amount
+of points.
+So to overcome this we had split it horizontally which makes it easier to pass the messages along the complete Horizontal
+Boundary and each Rank gets an extra grid line for boundary caluclations and passes the messages upon calculation. 
+Note: Due to some issues we are seeing some high values at some points which is causing the heatmap generation not to be clear with the scale variation being very varying and run with 256 blocks
+But you can see the variations in the .dat file being generated.

@@ -3,7 +3,9 @@ Author: Hari Krishna Majety
 
 Instructions to compile and run
 1) make -f p1.Makefile	
-2) ./my_prun ./my_rtt	
+2) ./my_prun -n 8 ./my_rtt	
+
+To run on different number of nodes, change the 8 to the number of nodes taken. The number of nodes should be even for the program to work fine.
 
 Analysis and comparision with HW1 Problem2:
 

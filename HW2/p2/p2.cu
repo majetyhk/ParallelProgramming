@@ -1,3 +1,11 @@
+/*
+Single Author info:
+hmajety  Hari Krishna Majety
+Group info:
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+*/
 #include<stdio.h>
 #include<cuda_runtime.h>
 #include<math.h>
@@ -19,7 +27,7 @@ __global__ void setup_kernel(curandState *state, int numElements)
 
 __global__ void getMonteCarloVal(float *dX,float *dY, float *dZ, curandState *state, int numElements){
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
+	//Ignore additional threads spawned
 	if(idx<numElements){
 		//dX[idx] = rand()/(float)RAND_MAX;
 		//dY[idx] = rand()/(float)RAND_MAX;
@@ -57,12 +65,15 @@ int main(int argc, char** argv){
 	int threadsPerBlock = 256;
 	int nBlocks = (numElements+threadsPerBlock-1)/threadsPerBlock;
 	printf("%d\n", nBlocks);
+	//Setup Curand generator states
 	setup_kernel<<<nBlocks,threadsPerBlock>>>(devStates,numElements);
+	//Call the Cuda kernel to perform Monte Carlo simulation
 	getMonteCarloVal<<<nBlocks,threadsPerBlock>>>(dX, dY, dZ, devStates, numElements);
 	cudaMemcpy(hZ, dZ, numElements*sizeof(float), cudaMemcpyDeviceToHost);
 	//cudaMemcpy(hX, dX, numElements*sizeof(float), cudaMemcpyDeviceToHost);
 	//cudaMemcpy(hY, dY, numElements*sizeof(float), cudaMemcpyDeviceToHost);
 	int count = 0;
+	//Aggregate the values received from the GPU
 	for (int i = 0; i < numElements; ++i)
 	{
 		count=count+hZ[i];

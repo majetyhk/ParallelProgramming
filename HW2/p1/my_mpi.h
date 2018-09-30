@@ -1,4 +1,11 @@
-
+/*
+Single Author info:
+hmajety  Hari Krishna Majety
+Group info:
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+*/
 
 #ifndef MY_MPI_H_
 #define MY_MPI_H_

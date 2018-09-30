@@ -1,9 +1,18 @@
+/*
+Single Author info:
+hmajety  Hari Krishna Majety
+Group info:
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <sys/time.h>
-
+#include "mpi.h"
+#include <unistd.h>
 #define _USE_MATH_DEFINES
 
 #define XMIN 0.0
@@ -24,7 +33,16 @@ void init_pebbles(double *p, int pn, int n);
 
 void run_cpu(double *u, double *u0, double *u1, double *pebbles, int n, double h, double end_time);
 
-extern void run_gpu(double *u, double *u0, double *u1, double *pebbles, int n, double h, double end_time, int nthreads);
+extern void run_gpu(double *u, double *u0, double *u1, double *pebbles, int n, double h, double end_time, int nthreads,int tag,int rank,MPI_Comm world);
+char *my_itoa(int num, char *str)
+{
+  if(str == NULL)
+  {
+    return NULL;
+  }
+  sprintf(str, "%d", num);
+  return str;
+}
 
 int main(int argc, char *argv[])
 {
@@ -43,10 +61,8 @@ int main(int argc, char *argv[])
 
   //------------------------MPI Setup-----------------------
 
-  int   numproc, rank, len, source, dest;
-  char *message;
-  int tag;
-  MPI_Status status;                    // Status for Receive Calls
+  int   numproc, rank;
+  int tag=50;
   int startValueX, endValueX, startValueY, endValueY;             // For Defining Processes End Grid Points
 
   /* initialize MPI */
@@ -64,12 +80,13 @@ int main(int argc, char *argv[])
   startValueY = (rank%2)*(npoints/2);
   endValueY = (npoints/2)*(1+rank%2);*/
 
-  startValueX = 0;
-  endValueX = npoints;
+  startValueX = 0; // assign starting and ending indices on x and y axes in the lake for different processes based on rank
+  endValueX = npoints-1;
 
-  startValueY = rank * npoints/4;
-  endValueY = startValueY + 31;
+  startValueY = rank * npoints/4; 
+  endValueY = startValueY + npoints/4 -1;
 
+  printf("Rank %d : [%d, %d] - [%d, %d]\n",rank, startValueX,endValueX,startValueY, endValueY );
 
   //------------------------MPI Setup-----------------------
 
@@ -77,50 +94,51 @@ int main(int argc, char *argv[])
   double *u_cpu, *u_gpu, *pebs;
   double h;
 
-  double elapsed_cpu, elapsed_gpu;
-  struct timeval cpu_start, cpu_end, gpu_start, gpu_end;
+  double  elapsed_gpu;
+  struct timeval gpu_start, gpu_end;
   
   u_i0 = (double*)malloc(sizeof(double) * narea);
   u_i1 = (double*)malloc(sizeof(double) * narea);
   pebs = (double*)malloc(sizeof(double) * narea);
 
   u_cpu = (double*)malloc(sizeof(double) * narea);
-  u_gpu = (double*)malloc(sizeof(double) * narea);
+  u_gpu = (double*)malloc(sizeof(double) * ((npoints/4)+2)*npoints);
 
   printf("Running %s with (%d x %d) grid, until %f, with %d threads\n", argv[0], npoints, npoints, end_time, nthreads);
 
   h = (XMAX - XMIN)/npoints;
   
-  init_pebbles(pebs, npebs, npoints);
-  init(u_i0, pebs, npoints);
+  init_pebbles(pebs, npebs, npoints); // Initialize pebbles
+  init(u_i0, pebs, npoints); //Initialize lake arrays
   init(u_i1, pebs, npoints);
-
-  	
-  print_heatmap("lake_i.dat", u_i0, npoints, h);
+  char fname[20];
+  
+  
 
 
   //----------------------MPI Manipulations--------------------------------------------
 
-  int *uc, *un;
-  int fidx,cidx;
-  if(rank==0||rank==4){
-    uc = (double*)malloc(sizeof(double)*(npoints/4 + 1)*(n));
-    un = (double*)malloc(sizeof(double)*(npoints/4 + 1)*(n));
+  double *uc, *un;
+  int fidx,cidx; // Create indices and required arrays to pass it to kernel
+  if(rank==0||rank==4){ // First and last processes will have one extra row for exchange
+    uc = (double*)calloc((npoints/4 + 1)*(npoints),sizeof(double));
+    un = (double*)calloc((npoints/4 + 1)*(npoints),sizeof(double));
   }
-  else{
-    uc = (double*)malloc(sizeof(double)*(npoints/4 + 2)*(n));
-    un = (double*)malloc(sizeof(double)*(npoints/4 + 2)*(n));
+  else{ // Other processes have two extra rows, one above and one below for exchange
+    uc = (double*)calloc((npoints/4 + 2)*(npoints),sizeof(double));
+    un = (double*)calloc((npoints/4 + 2)*(npoints),sizeof(double));
   }
   if(rank==0){
     cidx = 0;
   }
   else{
-    cidx = npoints/4;
+    cidx = npoints;
   }
-  
-  for (int i = sjtartValueX; i < endValueX; ++i)
+
+  // Copy the required parts of the lake into the respective arrays
+  for (int j = startValueY; j < endValueY; ++j)
   {
-    for (int j = startValueY; j < endValueY; ++j)
+    for (int i = startValueX; i < endValueX; ++i)
     {
       fidx = j*npoints+i;
       uc[cidx] = u_i0[fidx];
@@ -128,66 +146,21 @@ int main(int argc, char *argv[])
       cidx++;
     }
   }
-  int tag;
-  if(rank==0){
-    tag = rank;
-    //Stage 1
-    MPI_Send(uc+(npoints/4 - 1)*npoints,npoints,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD);
-    MPI_Send(un+(npoints/4 - 1)*npoints,npoints,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD);
-    //Stage 2
-    //-----No actions for rank 0 in this stage------
-    //Stage 3
-    MPI_Recv(uc+(npoints/4)*npoints,npoints, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status);
-    MPI_Recv(un+(npoints/4)*npoints,npoints, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status);
+  if(rank == 0) {
+    //my_itoa(rank,fname);
+    //strcat(fname,".dat");
 
+    //Print initial heatmap of the lake
+    print_heatmap("lake_i.dat", u_i0, npoints, h);
   }
-  else if(rank == 1){
-    tag = rank-1;
-    //Stage 1
-    MPI_Recv(uc,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD, &status);
-    MPI_Recv(un,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD, &status);
-    //Stage 2
-    MPI_Send(uc+(npoints/4)*npoints,npoints,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD);
-    MPI_Send(un+(npoints/4)*npoints,npoints,MPI_DOUBLE,rank+1,rank+1,MPI_COMM_WORLD);
-    //Stage 3
-    MPI_Send(uc+npoints,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-    MPI_Send(un+npoints,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-    //Stage 4
-    MPI_Recv(uc+(npoints/4 + 1)*npoints,npoints, MPI_DOUBLE, rank+1, rank+1, MPI_COMM_WORLD, &status);
-    MPI_Recv(un+(npoints/4 + 1)*npoints,npoints, MPI_DOUBLE, rank+1, rank+1, MPI_COMM_WORLD, &status);
-
-  }
-  else if(rank==2){
-    tag = rank;
-    //Stage 1
-    MPI_Send(uc+(npoints/4)*npoints,npoints,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD);
-    MPI_Send(un+(npoints/4)*npoints,npoints,MPI_DOUBLE,rank+1,tag,MPI_COMM_WORLD);
-    //Stage 2
-    MPI_Recv(uc,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD, &status);
-    MPI_Recv(un,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD, &status);
-    //Stage 3
-    MPI_Recv(uc+(npoints/4 + 1)*npoints,npoints, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status);
-    MPI_Recv(un+(npoints/4 + 1)*npoints,npoints, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status);
-    //Stage 4
-    MPI_Send(uc+npoints,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-    MPI_Send(un+npoints,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-  }
-  else{
-    tag = rank-1;
-    //Stage 1
-    MPI_Recv(uc, npoints, MPI_DOUBLE, rank-1,tag, MPI_COMM_WORLD, &status);
-    MPI_Recv(un, npoints, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD, &status);
-    //Stage 2
-    //------ No actions for rank 3 in this stage
-    //Stage 3
-    MPI_Send(uc+npoints,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-    MPI_Send(un+npoints,npoints,MPI_DOUBLE,rank-1,tag,MPI_COMM_WORLD);
-
-  }
+  //print_heatmap(fname, uc, npoints, h);
+  /*my_itoa(rank,fname);
+  strcat(fname,".dat");
+  print_heatmap(fname, uc, npoints, h);*/
   
 
 
-  //----------------------MPI Manipulations--------------------------------------------
+//----------------------MPI Manipulations--------------------------------------------
 
 
   //gettimeofday(&cpu_start, NULL);
@@ -198,16 +171,46 @@ int main(int argc, char *argv[])
   //                cpu_start.tv_sec + cpu_start.tv_usec * 1e-6));
   //printf("CPU took %f seconds\n", elapsed_cpu);
 
+  //Run the GPU code for resized arrays
   gettimeofday(&gpu_start, NULL);
-  run_gpu(u_gpu, u_i0, u_i1, pebs, npoints, h, end_time, nthreads);
+  run_gpu(u_gpu, uc, un, pebs, npoints, h, end_time, nthreads,tag,rank,MPI_COMM_WORLD);  
   gettimeofday(&gpu_end, NULL);
   elapsed_gpu = ((gpu_end.tv_sec + gpu_end.tv_usec * 1e-6)-(
                   gpu_start.tv_sec + gpu_start.tv_usec * 1e-6));
   printf("GPU took %f seconds\n", elapsed_gpu);
+  
+  double *res;
+  if(rank == 0){
+    res = (double*)(malloc(npoints*npoints*sizeof(double)));
+  }
 
+  //Gather GPU Output at the the root node
+  if(rank == 0){
+    MPI_Gather(u_gpu,(npoints/4)*npoints,MPI_DOUBLE,res,(npoints/4)*npoints,MPI_DOUBLE,0,MPI_COMM_WORLD);
+    /*for(int j = 0;j<npoints;j++){
+      for(int i =0;i<npoints;i++){
+        printf("[%d:%d,%d]:%lf ",rank,i,j,res[j*npoints+i]);
+      }
+      printf("\n");
+    }*/
+  }
+  else{
+    MPI_Gather(u_gpu+npoints,(npoints/4)*npoints,MPI_DOUBLE,res,(npoints/4)*npoints,MPI_DOUBLE,0,MPI_COMM_WORLD);
+  }
 
-  print_heatmap("lake_f.dat", u_cpu, npoints, h);
-  print_heatmap("lake_f_gpu.dat", u_gpu, npoints, h);
+  
+    
+
+  //print_heatmap("lake_f.dat", u_cpu, npoints, h);
+  my_itoa(rank,fname);
+  strcat(fname,"_gpu.dat");
+  if(rank==0){
+    //print_heatmap(fname, u_gpu, npoints, h);
+    print_heatmap("lake_f_gpu.dat", res, npoints, h);
+  }
+  /*my_itoa(rank,fname);
+  strcat(fname,"_gpu.dat");
+  print_heatmap(fname, u_gpu, npoints, h);*/
 
   free(u_i0);
   free(u_i1);
@@ -215,7 +218,7 @@ int main(int argc, char *argv[])
   free(u_cpu);
   free(u_gpu);
 
-  return 1;
+  return 0;
 }
 
 void run_cpu(double *u, double *u0, double *u1, double *pebbles, int n, double h, double end_time)
@@ -347,7 +350,7 @@ void print_heatmap(const char *filename, double *u, int n, double h)
     for( j = 0; j < n; j++ )
     {
       idx = j + i * n;
-      fprintf(fp, "%f %f %f\n", i*h, j*h, u[idx]);
+      fprintf(fp, "%lf %lf %lf\n", i*h, j*h, u[idx]*10);
     }
   }
   
