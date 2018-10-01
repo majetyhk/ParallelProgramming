@@ -17,7 +17,6 @@ mreddy2 Harshavardhan Reddy Muppidi
 #include <netdb.h>
 #include "my_mpi.h"
 
-int sockfd,sockfd_root; 
 
 char *numToString(int num, char *str)
 {
@@ -43,7 +42,7 @@ int MPI_Comm_size(MPI_Comm comm, int *size)
 }
 
 
-int createSocket(char* fname){
+int createSocket(int rank,int gather){
     struct sockaddr_in serv_addr, my_addr;
     int sock = socket(AF_INET, SOCK_STREAM, 0);	//Create socket
     if(sock==-1)
@@ -71,6 +70,15 @@ int createSocket(char* fname){
         printf("Error getting socket info\n" );
         exit(0);
     }
+    char fname[20];
+    numToString(MPI_COMM_WORLD.rank,fname);
+    if(gather == 1){
+	 strcat(fname,"gather.txt");
+   }else if(gather == 2){
+	strcat(fname,"gather1.txt");
+    }else{
+    strcat(fname,".txt");
+    }
     int myPort = ntohs(my_addr.sin_port); 
     FILE *file = fopen(fname, "w");
     fprintf(file, "%d",myPort); //Write the port number to a file
@@ -91,12 +99,12 @@ int MPI_Init(int *argc, char **argv[] )
     MPI_COMM_WORLD.size = numProc;  // Read the num of nodes participating parameter passed as command line argument
     MPI_COMM_WORLD.rank = atoi(argv_param[1]); //Read in the rank of the node
     strcpy(MPI_COMM_WORLD.myHostName,argv_param[4]); // Read the node name passed
-
+    MPI_COMM_WORLD.gather = 0;
     MPI_COMM_WORLD.hostList = (char **)malloc(numProc * sizeof(char*)); //Allocate memory for fetching node names
+    char* host = (char *)malloc(numProc * MAXNAMELEN * sizeof(char));
     for(int i = 0; i <numProc; i++){
-        MPI_COMM_WORLD.hostList[i] = (char *)malloc(numProc * MAXNAMELEN * sizeof(char));
+        MPI_COMM_WORLD.hostList[i] = &host[i * MAXNAMELEN];
     }
-    
     fflush(stdin);
     strcat(argv_param[2],"/nodefile.txt");	//Open file to read the node names
     FILE *fp = fopen(argv_param[2], "r");
@@ -107,16 +115,21 @@ int MPI_Init(int *argc, char **argv[] )
     for(int i = 0; i< numProc; i++){
         fscanf(fp, "%s", MPI_COMM_WORLD.hostList[i]);	//Read node names into an array
     }
-    char fname[20];
-    numToString(MPI_COMM_WORLD.rank,fname);
-    strcat(fname,".txt");
-    sockfd = createSocket(fname);	//Create a socket to listen for connections
+    MPI_COMM_WORLD.sockfd = createSocket(MPI_COMM_WORLD.rank,0);	//Create a socket to listen for connections
+    if(MPI_COMM_WORLD.rank == 0){
+	MPI_COMM_WORLD.sockfd_gather = createSocket(MPI_COMM_WORLD.rank,1);
+        MPI_COMM_WORLD.sockfd_gather1 = createSocket(MPI_COMM_WORLD.rank,2);
+    }else{
+	MPI_COMM_WORLD.sockfd_gather = -1;
+	MPI_COMM_WORLD.sockfd_gather1 = -1;
+    }
     return 0;
 }
 
 
 int MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,MPI_Comm comm)
 {
+    
     int receiverPort;
     struct hostent *receiver;
     struct sockaddr_in client_addr;
@@ -130,7 +143,14 @@ int MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,MPI_
 
     char fname[30]; 
     numToString(dest,fname);
+    if(comm.gather == 1 && dest == 0){
+  //      printf("\n gather send \n");
+	strcat(fname,"gather.txt");
+    }else if(comm.gather == 2 && dest == 0){
+	strcat(fname,"gather1.txt");
+}else{
     strcat(fname,".txt");	
+}
     file = fopen(fname, "r");
     while(file == NULL)
     {
@@ -168,17 +188,42 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, M
 {
      
      socklen_t clilen;
-     struct sockaddr_in sender_addr;
+     struct sockaddr_in cli_addr;
      
-     clilen = sizeof(sender_addr);
+     clilen = sizeof(cli_addr);
      int newsockfd;
-     newsockfd = accept(sockfd, (struct sockaddr *) &sender_addr , &clilen);	//Accept connection on the already created socket during MPI_Init()
+     int diff;
+	if(comm.gather==1 || comm.gather==2){
+		struct sockaddr_in serv_addr;
+		struct hostent *server;
+	   // printf("\n gather recv\n");
+	        int sck = (comm.gather == 1)?comm.sockfd_gather:comm.sockfd_gather1;
+	        newsockfd = accept(sck, (struct sockaddr *) &cli_addr , &clilen);	//Accept connection on the already created socket during MPI_Init()
+		int sender,i=0;
+        	while(i<comm.size){
+	            server = gethostbyname(comm.hostList[i]);
+		    bzero((char *) &serv_addr, sizeof(serv_addr));
+	            bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+        	    if(serv_addr.sin_addr.s_addr == cli_addr.sin_addr.s_addr ){     //save the client with whom the connection is accepted by the server
+	                sender = i;
+			break;
+        	    }
+		    i++;
+		 }
+		 if(sender!=source)
+		     buf = buf+((sender-source)*count*sizeof(double));  
+		 
+	}
+	else{
+		 newsockfd = accept(comm.sockfd, (struct sockaddr *) &cli_addr , &clilen);
+	}
      
      if (newsockfd < 0) {
         printf("Error accepting connection from %s on %s\n", comm.hostList[source],comm.myHostName );
         exit(0);
      }
      int flag= recv(newsockfd,buf,count*datatype,MSG_WAITALL);	//Receive the message
+//     printf("Size recevide from %d at %u is %d\n",source,buf,flag);
      if (flag < 0){
         printf("Error receiving from %s on %s\n", comm.hostList[source],comm.myHostName );
         exit(0);
@@ -187,4 +232,25 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, M
      close(newsockfd); //Close the newly created socket after connection establishment
      return 0;
 }
+int MPI_Gather(void *buf,int count, MPI_Datatype datatype, void *res, int gCount, MPI_Datatype gdatatype,int root, MPI_Comm comm){
+//	printf("\n gathering \n");
+	if(comm.rank!=0){
+		comm.gather = root;
+                MPI_Send((double*)buf, count, MPI_DOUBLE,0,root, comm);
+                return 0;
+        }
+		
+        int status = 0;
+        for (int i=1; i<comm.size; i++) {
+		comm.gather=root;
+                MPI_Recv(((double*)res)+(i*count),count,MPI_DOUBLE,i,root,comm,&status);
+        }
+        return 0;
 
+}
+ int MPI_Finalize(MPI_Comm comm){
+	close(comm.sockfd);
+	if(comm.rank == 0){
+		close(comm.sockfd_gather);
+	}
+}

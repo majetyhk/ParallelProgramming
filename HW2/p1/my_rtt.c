@@ -103,27 +103,30 @@ int main (int argc, char *argv[])
                                 stddev[sizecounter-5] += (elapsedTime[i] - avgelapsedTime[sizecounter-5])*(elapsedTime[i]-avgelapsedTime[sizecounter-5]); 
                         }
                         stddev[sizecounter-5] = sqrt(stddev[sizecounter-5]/(double)10); // compute the standard deviation
-                        printf("Rank: %d, Size = %lf, Average RTT = %lf, Stddev = %lf \n", rank, size, avgelapsedTime[sizecounter-5], stddev[sizecounter-5]);
-                        
+                        // printf("Rank: %d, Size = %lf, Average RTT = %lf, Stddev = %lf \n", rank, size, avgelapsedTime[sizecounter-5], stddev[sizecounter-5]);        
                 }
                 fflush(stdin);
                 free(elapsedTime);
                 sizecounter++;
-
                 //printf("After %d, rank %d\n",sizecounter,rank);
         }
 
         
-        /*if(rank == 0){ //Allocating space in the root process for receiving the AvgRTT and StdDev values from other processes
-                //avgRTTBuff = (double *)malloc((numproc)*17*sizeof(double)); 
-                //stddevBuff = (double *)malloc((numproc)*17*sizeof(double));
-        }*/
+        if(rank == 0){ //Allocating space in the root process for receiving the AvgRTT and StdDev values from other processes
+                avgRTTBuff = (double *)malloc((numproc)*17*sizeof(double)); 
+                stddevBuff = (double *)malloc((numproc)*17*sizeof(double));
+		for(int i = 0;i<17;i++){
+        	    avgRTTBuff[i] =  avgelapsedTime[i];
+		    stddevBuff[i] = stddev[i];
+	        }
+
+        }
         fflush(stdin);
-        //MPI_Gather(avgelapsedTime,17,MPI_DOUBLE,avgRTTBuff,17,MPI_DOUBLE,0,MPI_COMM_WORLD); // Collect values from all the processes
-        //MPI_Gather(stddev,17,MPI_DOUBLE,stddevBuff,17,MPI_DOUBLE,0,MPI_COMM_WORLD);
+        MPI_Gather(avgelapsedTime,17,MPI_DOUBLE,avgRTTBuff,17,MPI_DOUBLE,1,MPI_COMM_WORLD); // Collect values from all the processes
+        MPI_Gather(stddev,17,MPI_DOUBLE,stddevBuff,17,MPI_DOUBLE,2,MPI_COMM_WORLD);
         fflush(stdin);
 
-        //if(rank==0){ // Due to nature of MPI_Gather, we collect from all processes though even processes is where we are calculating the values. So print only the relevant values. Skip values corresponding to odd processes.
+        if(rank==0){ // Due to nature of MPI_Gather, we collect from all processes though even processes is where we are calculating the values. So print only the relevant values. Skip values corresponding to odd processes.
 
                 //Print method 1
                 /*printf("'Pair','MessageSize','AvgRTT','Stddev'\n");
@@ -135,15 +138,14 @@ int main (int argc, char *argv[])
                 }*/
 
                 //Print method 2 
-                //printf("'MessageSize','AvgRTT1','Stddev1','AvgRTT2','Stddev2','AvgRTT3','Stddev3','AvgRTT4','Stddev4'\n");
-                //for (int i = 0; i < 17*8; ++i)
-                //{
-                    //printf("%lf\n", avgRTTBuff[i]);
-                        /* code */
-                        //printf("%lf , %lf, %lf , %lf, %lf, %lf, %lf, %lf, %lf \n",pow(2, (i%17)+5 ) ,avgRTTBuff[i],stddevBuff[i], avgRTTBuff[i+17*2],stddevBuff[i+17*2], avgRTTBuff[i+17*4],stddevBuff[i+17*4], avgRTTBuff[i+17*6],stddevBuff[i+17*6]);
-                //}
-        //}
+                printf("'MessageSize','AvgRTT1','Stddev1','AvgRTT2','Stddev2','AvgRTT3','Stddev3','AvgRTT4','Stddev4'\n");
+            for (int i = 0; i < 17; ++i)
+            {
+                    /* code */
+                    printf("%lf , %lf, %lf , %lf, %lf, %lf, %lf, %lf, %lf \n",pow(2, (i%17)+5 ) ,avgRTTBuff[i],stddevBuff[i], avgRTTBuff[i+17*2],stddevBuff[i+17*2], avgRTTBuff[i+17*4],stddevBuff[i+17*4], avgRTTBuff[i+17*6],stddevBuff[i+17*6]);
+            }
+        }
         /* graceful exit */
-        //MPI_Finalize();
+        MPI_Finalize(MPI_COMM_WORLD);
  return 0;
 }
