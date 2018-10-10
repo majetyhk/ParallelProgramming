@@ -1,0 +1,35 @@
+CSC 501 Peer Evaluation Form
+============================
+
+Personal data
+-------------
+unity id: hmajety
+First Name: Hari Krishna
+Last Name: Majety
+
+
+Peer evaluations
+----------------
+
+Please indicate a scope on a scale of 0..100% for the work performance
+of your group peers. A score of 100% certifies that your peer
+performed his/her part of the group work as assigned and nobody needed
+to pick up unfinished work from this peer. A scope of 50% indicates
+that the peer only did half of what was required. The other half could
+have been left unfinished or picked up by someone else. (If it was
+picked up by someone else, the other peers may get extra credit at
+the end of the class, see policies.) Feel free to add additional peer
+entries if needed.
+
+peer: 1
+unity id: srout
+First Name: Sweta	
+Last Name: Rout
+score: 100%
+
+
+peer: 2
+unity id: mreddy2
+First Name: Muppidi
+Last Name: Harshavardhan Reddy
+score: 100%
