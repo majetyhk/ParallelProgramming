@@ -16,6 +16,7 @@ SOURCES2.0 = \
 	lulesh.cc \
 	lulesh-comm.cc \
 	lulesh-viz.cc \
+	pmpi.c \
 	lulesh-util.cc \
 	lulesh-init.cc
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export OMP_NUM_THREADS=1
+make
+prun ./lulesh2.0 -s 80 -i 20
