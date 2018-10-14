@@ -216,10 +216,10 @@ void run_sim(double *u, double *u0, double *u1, double *pebbles, int n, double h
 
     /* run a central finite differencing scheme to solve
      * the wave equation in 2D */
-    #pragma omp parallel for shared(un, uc, uo) private(idx,i,j)
+    #pragma omp parallel for shared(un, uc, uo) private(idx) collapse(2)
     for( i = 0; i < n; i++)
     {
-      //#pragma omp parallel for
+      //#pragma omp parallel for shared(un, uc, uo) private(idx)
       for( j = 0; j < n; j++)
       {
         idx = j + i * n;
