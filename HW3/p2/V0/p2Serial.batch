@@ -1,0 +1,4 @@
+#!/bin/bash
+
+make -f Makefile.serial
+./lake 1024 4 2.0 1
