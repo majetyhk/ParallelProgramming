@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
   /* used for time analysis */
   double elapsed_cpu, elapsed_init;
   struct timeval cpu_start, cpu_end;
-  
+  omp_set_num_threads(nthreads);
   /* allocate arrays */
   u_i0 = (double*)malloc(sizeof(double) * narea);
   u_i1 = (double*)malloc(sizeof(double) * narea);
@@ -216,7 +216,7 @@ void run_sim(double *u, double *u0, double *u1, double *pebbles, int n, double h
 
     /* run a central finite differencing scheme to solve
      * the wave equation in 2D */
-    #pragma omp parallel for
+    #pragma omp parallel for shared(un, uc, uo) private(idx,i,j)
     for( i = 0; i < n; i++)
     {
       //#pragma omp parallel for
