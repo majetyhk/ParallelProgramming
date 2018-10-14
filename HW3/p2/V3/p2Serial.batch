@@ -1,0 +1,4 @@
+#!/bin/bash
+
+make -f Makefile.omp
+./lake 1024 4 2.0 16
