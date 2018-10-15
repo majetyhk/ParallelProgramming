@@ -1,0 +1,9 @@
+SHELL:=/bin/bash
+TA=$(shell module load pgi64; pgaccelinfo|tail -1|awk '{print $$4}')
+
+all:
+	module load pgi64; \
+	pgcc -o lake lake.c -I./ -acc $(TA),time -fast -Minfo=accel -Minline -Msafeptr -Mnodepchk -lm
+
+clean:
+	rm -f *.o *~ *.dat *.png lake.log lake

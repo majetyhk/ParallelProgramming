@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   struct timeval cpu_start, cpu_end;
 
   //Set Number of Threads for OpenMP
-  omp_set_num_threads(nthreads);
+  //omp_set_num_threads(nthreads);
 
   /* allocate arrays */
   u_i0 = (double*)malloc(sizeof(double) * narea);
@@ -199,17 +199,12 @@ void run_sim(double *u, double *u0, double *u1, double *pebbles, int n, double h
   /* put the inital configurations into the calculation arrays */
   //memcpy(uo, u0, sizeof(double) * n * n);
   //memcpy(uc, u1, sizeof(double) * n * n);
-  #pragma omp parallel private(i)
+  #pragma omp parallel for private(i) num_threads(nthreads)
+  for (i = 0; i < n*n; ++i)
   {
-    #pragma omp for schedule(dynamic) nowait
-    for (i = 0; i < n*n; ++i)
-    {
-      uo[i] = u0[i];
-      uc[i] = u1[i];
-    }
-  } 
-
-  
+    uo[i] = u0[i];
+    uc[i] = u1[i];
+  }
 
   /* start at t=0.0 */
   t = 0.;
@@ -230,34 +225,31 @@ void run_sim(double *u, double *u0, double *u1, double *pebbles, int n, double h
 
     /* run a central finite differencing scheme to solve
      * the wave equation in 2D */
-    #pragma omp parallel shared(uo,uc,un,n) private(idx,i,j)
+    #pragma acc parallel loop copyin(uc[:n*n],uo[:n*n],pebbles[:n*n]) copyout(un[:n*n]) private(i,j,idx)
+    #pragma omp parallel for private(idx,i,j) num_threads(nthreads)
+    for( i = 0; i < n; i++)
     {
-      #pragma omp for schedule(dynamic) nowait
-      for( i = 0; i < n; i++)
+      //#pragma omp parallel for shared(un, uc, uo) private(idx)
+      for( j = 0; j < n; j++)
       {
-        //#pragma omp parallel for shared(un, uc, uo) private(idx)
-        for( j = 0; j < n; j++)
+        idx = j + i * n;
+        
+        /* impose the u|_s = 0 boundary conditions */
+        if( i == 0 || i == n - 1 || j == 0 || j == n - 1)
         {
-          idx = j + i * n;
-          
-          /* impose the u|_s = 0 boundary conditions */
-          if( i == 0 || i == n - 1 || j == 0 || j == n - 1)
-          {
-            un[idx] = 0.;
-          }
+          un[idx] = 0.;
+        }
 
-          /* otherwise do the FD scheme */
-          else
-          {
-              un[idx] = 2*uc[idx] - uo[idx] + VSQR *(dt * dt) *((uc[idx-1] + uc[idx+1] +
-                        uc[idx+n] + uc[idx-n] + 0.25 * (uc[idx-n-1] + uc[idx+n-1]+ uc[idx-n+1] + 
-              uc[idx+n+1]) - 5 * uc[idx])/(h * h) + f(pebbles[idx],t));
+        /* otherwise do the FD scheme */
+        else
+        {
+            un[idx] = 2*uc[idx] - uo[idx] + VSQR *(dt * dt) *((uc[idx-1] + uc[idx+1] +
+                      uc[idx+n] + uc[idx-n] + 0.25 * (uc[idx-n-1] + uc[idx+n-1]+ uc[idx-n+1] + 
+					  uc[idx+n+1]) - 5 * uc[idx])/(h * h) + f(pebbles[idx],t));
 
-          }
         }
       }
     }
-    
 
     /* update the calculation arrays for the next time step */    
     //memcpy(uo, uc, sizeof(double) * n * n);
@@ -356,19 +348,15 @@ void init(double *u, double *pebbles, int n)
 {
   int i, j, idx;
 
-  #pragma omp parallel shared(u,n) private(idx,i,j)
+  #pragma omp parallel for private(idx,i,j) num_threads(nthreads)
+  for(i = 0; i < n ; i++)
   {
-    #pragma omp for schedule(dynamic) nowait
-    for(i = 0; i < n ; i++)
+    for(j = 0; j < n ; j++)
     {
-      for(j = 0; j < n ; j++)
-      {
-        idx = j + i * n;
-        u[idx] = f(pebbles[idx], 0.0);
-      }
+      idx = j + i * n;
+      u[idx] = f(pebbles[idx], 0.0);
     }
-  } 
-  
+  }
 }
 
 /*****************************

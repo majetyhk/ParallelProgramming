@@ -1,0 +1,8 @@
+SHELL:=/bin/bash
+
+all:
+	module load pgi64; \
+	pgcc -o lake lake.c -I./ -fast -Minfo=mp,accel -Minline -Msafeptr -lm
+
+clean:
+	rm -f *.o *~ *.dat *.png lake.log lake
