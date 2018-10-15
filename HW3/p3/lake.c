@@ -220,12 +220,13 @@ void run_sim(double *u, double *u0, double *u1, double *pebbles, int n, double h
   dt = h / 2.;
 
   /* loop until time >= end_time */
+  #pragma acc data copyin(uc[:n*n],uo[:n*n],pebbles[:n*n]) copyout(un[:n*n])
   while(1)
   {
 
     /* run a central finite differencing scheme to solve
      * the wave equation in 2D */
-    #pragma acc parallel loop copyin(uc[:n*n],uo[:n*n],pebbles[:n*n]) copyout(un[:n*n]) private(i,j,idx)
+    #pragma acc parallel loop present(uc[:n*n],uo[:n*n],pebbles[:n*n], un[:n*n]) private(i,j,idx)
     #pragma omp parallel for private(idx,i,j) num_threads(nthreads)
     for( i = 0; i < n; i++)
     {
