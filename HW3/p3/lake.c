@@ -220,6 +220,7 @@ void run_sim(double *u, double *u0, double *u1, double *pebbles, int n, double h
   dt = h / 2.;
 
   /* loop until time >= end_time */
+  //Copy only uc, uo and pebbles to device before loop begins and copy only un to host after loop finishes
   #pragma acc data copyin(uc[:n*n],uo[:n*n],pebbles[:n*n]) copyout(un[:n*n])
   while(1)
   {

@@ -1,0 +1,75 @@
+Here are the lake.log timings and kernel timing statistics (stdout) for each optimization
+Serial run with no optimizations
+/*************************************************************************************/
+running ./lake with (128 x 128) grid, until 1.000000, with 1 threads
+Initialization took 0.001816 seconds
+Simulation took 0.234676 seconds
+Init+Simulation took 0.236492 seconds
+/*************************************************************************************/
+
+
+ACC execution with naive directive
+/*************************************************************************************/
+running ./lake with (128 x 128) grid, until 1.000000, with 1 threads
+Initialization took 0.000862 seconds
+Simulation took 0.620801 seconds
+Init+Simulation took 0.621663 seconds
+/*************************************************************************************/
+
+
+Serial execution for the given benchmark parameters
+/*************************************************************************************/
+running ./lake with (512 x 512) grid, until 4.000000, with 1 threads
+Initialization took 0.012187 seconds
+Simulation took 61.023611 seconds
+Init+Simulation took 61.035798 seconds
+/*************************************************************************************/
+
+
+ACC execution for given benchmark parameters
+/*************************************************************************************/
+running ./lake with (512 x 512) grid, until 4.000000, with 1 threads
+Initialization took 0.012525 seconds
+Simulation took 28.856491 seconds
+Init+Simulation took 28.869016 seconds
+/*************************************************************************************/
+
+
+
+ACC execution with copyin copyout instead of copy using benchmark parameters
+/*************************************************************************************/
+running ./lake with (512 x 512) grid, until 4.000000, with 1 threads
+Initialization took 0.009513 seconds
+Simulation took 15.776242 seconds
+Init+Simulation took 15.785755 seconds
+/*************************************************************************************/
+
+
+
+ACC execution on optimizing data copy by placing it before while loop
+/*************************************************************************************/
+running ./lake with (512 x 512) grid, until 4.000000, with 1 threads
+Initialization took 0.008450 seconds
+Simulation took 1.055833 seconds
+Init+Simulation took 1.064283 seconds
+/*************************************************************************************/
+
+
+
+Discuss each optimization (one at a time) in detail
+--The naive ACC optimization code provided performs well as the problem size increases. 
+--The naive ACC code copies all the arrays to and from device which is not necessary. Therefore in second level of optimization only input arrays(uo,uc,pebbles) are copied in and output array is copied out. This reduces the memory copy overhead by almost half which also reflects in the performance.
+--To further optimize, the input arrays and the output array are now copied only once to the device and from the device respectively. We can achieve the required array exchanging by pointer manipulations. This reduces the necessity to copy the arrays continuosly to the device after every iteration. 
+
+
+The effect of the problem size (smaller vs. larger grids, short vs. longer simulation times)
+-- With increase in the problem size(both grid size), the performance of the acc code improves and achieves better speedup. For example with 4.0 secs, the speedup was 57X while with 8.0 sec, the speedup is 68X.
+
+
+
+Where your biggest optimization came from (eg thread scheduling? memory management? screaming at the screen louder?)
+--The biggest optimization has come from memory management. 
+
+
+Possible improvements in the code, etc.
+--If possible, allocating the uc, uo and pebbles arrays in the shared memory for faster access in each loop.

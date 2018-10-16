@@ -1,0 +1,9 @@
+To Run the lulesh code with profiling,
+- Copy the pmpi.c into the directory with lulesh implementation
+- Run the lulesh just as before.
+
+The pmpi.c file has the functionality to collect the information and write to matrix.data file in the same directory. A heatplot can be generated using heatmap.plot file with command "gnuplot heatmap.plot"
+
+On observing the heatmap, we can see most of the communication happened around the diagonal with center diagonal values being zero. The center diagonal values are zero as no node will communicate with itself via MPI. Most nodes communicate with their immediate neighbors
+
+As the code is trying to solve a penta diagonal equations, we can expect symmetries around diagonals. The results show the same.

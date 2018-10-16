@@ -1,0 +1,110 @@
+V0: 
+The time taken for the serial code (1 thread) to run with a grid of 1024 and 4 pebbles, up to a time of 2.0 seconds.
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 1 threads
+	Initialization took 0.030345 seconds
+	Simulation took 257.567161 seconds
+	Init+Simulation took 257.597506 seconds
+/*************************************************************************************/
+
+################################################################################################################
+
+V1:
+On Optimizing the memcpy alone, 
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 1 threads
+	Initialization took 0.030205 seconds
+	Simulation took 245.600746 seconds
+	Init+Simulation took 245.630951 seconds
+/*************************************************************************************/
+
+On optimizing memcpy + inner loop,
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 16 threads
+	Initialization took 0.029222 seconds
+	Simulation took 53.223877 seconds
+	Init+Simulation took 53.253099 seconds
+/*************************************************************************************/
+
+On optimizing memcpy + outer loop,
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 16 threads
+	Initialization took 0.029829 seconds
+	Simulation took 17.120420 seconds
+	Init+Simulation took 17.150249 seconds
+/*************************************************************************************/
+
+On optimizing memcpy + both loops,
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 16 threads
+	Initialization took 0.035624 seconds
+	Simulation took 26.656338 seconds
+	Init+Simulation took 26.691962 seconds
+/*************************************************************************************/
+
+
+################################################################################################################
+
+
+V2:
+Choosing the memcpy + outer loop optimization from V1 as it gave the best results
+
+On parallelizing only init function
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 16 threads
+	Initialization took 0.047753 seconds
+	Simulation took 13.859254 seconds
+	Init+Simulation took 13.907007 seconds
+/*************************************************************************************/
+
+On parallelizing init function + memcpy 
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 16 threads
+	Initialization took 0.027666 seconds
+	Simulation took 13.927564 seconds
+	Init+Simulation took 13.955230 seconds
+/*************************************************************************************/
+
+
+################################################################################################################
+
+
+V3:
+Using the init + memcpy parallelized code from V2
+/*************************************************************************************/
+	running ./lake with (1024 x 1024) grid, until 2.000000, with 16 threads
+	Initialization took 0.030847 seconds
+	Simulation took 15.767558 seconds
+	Init+Simulation took 15.798405 seconds
+/*************************************************************************************/
+
+
+Questions:
+How/why does your optimization for removing memory copies work?
+-- Memcpy operations take a significant amount of time to copy huge arrays of size 1024*1024 that too after every iteration. In this simulation code, we can simply achieve this by exchanging the pointers instead of copying the arrays. Therefore, this reduces the copying overhead after every iteration.
+
+
+Does which loop you parallelized matter? Why or why not?
+-- Yes, the loop being parallelized matters because though the overhead in lauching threads is less it is not totally negligible. Frequent spawning and joining of threads does involve some overhead and hence parallelizing inner loop which does just one calculation before joining with master thread is taking more amount of time on the whole. There is a lot of synchronization overhead as well with every spawn. With parallelizing only outer loop, such overheads are minimal and the threads can now also access the data with relatively less synchronization issues. 
+
+
+Does parallelizing both loops make a difference? Why or why not?
+-- Parallelizing both loops brought down the execution time compared to parallelizing only the inner loop but it takes more time than parallelizing the outer loop alone. This could be due to relatively less thread spawning overhead compared to the inner loop version which resulted in relatively better performance than the inner loop solution.
+
+
+Why does parallelizing memory initializations matter?
+--Though the arrays are long for the given execution and intuitive to expect some speedup on parallelization, there was no such outcome observed in this case. This could be due to the spawning and scheduling overheard of the threads being more than the performance improvement gained through parallelization.
+
+
+Does the scheduling type matter? Why or why not?
+--Scheduling type actually matters as there is 2 secs of time difference matters for this particular execution of code and dynamic scheduling was on an average taking 2 secs longer than static scheduling. This could be because of the unnecesary scheduling overhead involved in scheduling the threads on completion of the task assigned to them. It is observed that on increasing the iterations by increasing the time parameter, the dynamic scheduling is around 10-12% slower than static scheduling. 
+
+
+This program is particularly easy to parallelize. Why?
+--The program is easy to parallelize because there are no dependencies between the iterations of the external while loop and also in the inner loops, the data writes are not dependent on other iterations. 
+
+
+Other optimizations possible
+-- Though initialization optimizations didn't appear to be working now, they might work for much larger input arrays. For the same reason, the other memcpys like the one after the while loop can be parallelized.
+
+Also the process of pebble generation can also be parallelized incase the number of pebbles are huge as the pebbles initialization is involving multiple operations that are being performed sequencially now.
