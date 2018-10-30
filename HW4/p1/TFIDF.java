@@ -17,8 +17,8 @@ import java.util.*;
 
 /*
  * Main class of the TFIDF MapReduce implementation.
- * Author: Tyler Stocksdale
- * Date:   10/18/2017
+ * Author: Hari Krishna Majety
+ * Date:   10/28/2018
  */
 public class TFIDF {
 
