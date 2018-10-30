@@ -1,0 +1,7 @@
+Algorithm:
+The TFIDF calculation is split into three parts involving a Map and a Reduce operation in each as given in the code template.
+
+In the first job, counts of each word in each document is identified and written to a file.
+The second job reads the output of the first file and calculates the term frequency part of the TFIDF by dividing the word counts obtained in the previous step with newly calculated total count of words in the current document.
+
+In the third job, which takes the output of the second job as input, computes the TFIDF by multiplying the TF part obtained in the previous step with the newly computed IDF part and writes the output to a final file.

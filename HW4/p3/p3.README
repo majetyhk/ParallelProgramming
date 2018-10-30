@@ -1,0 +1,38 @@
+Single Author info:
+srout	Sweta Rout
+
+Group info:
+hmajety	 Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+
+
+We showed all plots in plots.png depicting the relationships of frequency with elapsed time, power and stall counts. Below is our analysis for such results:
+
+Frequency and Elapsed Time
+--------------------------
+
+Time is found to be decreasing with increase in frequency.
+This is correct as time is the number of clock cycles while frequency is the number of clock cycles per unit time. 
+Hence both are inversely proportional.
+
+Frequency and Power
+-------------------
+
+With increase in frequency, average power also increases as per our results. 
+There are some kinds of power that account for thte total power consumption. For ex: leakage power, dynamic power and others
+Total power consumption increases with increase in frequency as Dynamic power or switching power is directly dependent on the frequency. 
+It depends on the frequency at which CPU is clocked.
+Hence, when we increase frequency, power consumption increases.
+
+Frequency and PAPI_RES_STL
+--------------------------
+
+PAPI_RES_STL : PAPI counter for 'Cycles stalled on any resource'
+With increase in frequency, resource contention increases, hence there are more number of stalls.
+
+Frequency and PAPI_STL_ICY
+--------------------------
+
+PAPI_STL_ICY : PAPI counter for 'Cycles with no instruction issue'
+With increase in frequency, number of clock cycles decrease per operations. Hence there are more stalls required for to solve no instruction issues.

@@ -204,7 +204,7 @@ public class TFIDF {
 			for(Text value : values)
 			{
 				inpVals.add(value.toString());
-				System.out.println(value);
+				//System.out.println(value);
 				String[] vals = value.toString().split("=");
 				docSize += Integer.parseInt(vals[1]);
 			}
@@ -215,7 +215,7 @@ public class TFIDF {
 				int wordCount = Integer.parseInt(vals[1]);
 				Text outputKey = new Text(vals[0]+'@'+documentKey);
 				Text outputValue = new Text( (new Integer(wordCount)).toString()+'/'+(new Integer(docSize)).toString());
-				System.out.println(outputKey+","+outputValue);
+				//System.out.println(outputKey+","+outputValue);
 				con.write(outputKey, outputValue);
 			}
 		}
