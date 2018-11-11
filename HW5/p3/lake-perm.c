@@ -1,3 +1,12 @@
+/*
+Single Author info:
+hmajety  Hari Krishna Majety
+Group info:
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,6 +51,7 @@ double  end_time  = 1;
 int     nthreads  = 4;
 int     narea     = 128*128;
 
+//Declare the variables required to be checkpointed as perm
 PERM double u_i0[128*128], u_i1[128*128];
 PERM double u_cpu[128*128], pebs[128*128];
 PERM double t;
@@ -166,6 +176,7 @@ void run_cpu(double *u, double *u0, double *u1, double *pebbles, int n, double h
     //printf(" %lf\n", t);
     
     if(!tpdt(&t,dt,end_time)) break;
+    //Back up the variables - Checkpoint
     backup();
     //un = temp;
   }

@@ -1,0 +1,8 @@
+Algorithm:
+The TFIDF calculation is split into three parts with each part involving a sequence of map and reduce operations like in the earlier assignement as given in the code template.
+
+In the first set of MapValues-ReduceKey operations, we calculate the term frequency in each document by reading the input from the flapMapToPair Operation.
+
+In the second set of operations(MpaToPair - ReduceByKey - flatMapToPair), we read in the output from the first set and calculate the IDF part of the TFIDF where we count the number of documents a given has appeared.
+
+In the third set of operations, which takes the output from both the previous stages, we convert the TF and IDF values which are in the string format to integer format. Then the RDDs are combined and with a reduceByKey - mapToPair operations compute the TFIDF.

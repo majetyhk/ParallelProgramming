@@ -1,0 +1,7 @@
+Solution:
+
+For implementing the checkpointing, we removed many other unncessary variables and function calls which we felt irrelevant for the scope of this question. This includes the code for timing the execution and calls to GPU since we were asked to use only the Serial version for this question.
+
+We placed the basic required arrays as the permanent ones which include the u_i0, u_i1, time step variable t, pebble locations and the output variable u_cpu. The pebble initialization has been given a fixed seed to make sure the pebbles are always generated the same way to facilitate comparison between continuos and interrupted running during the assignment evaluation.
+
+Overhead due to checkpointing seems to be high with code taking around 36 seconds with checkpointing and almost instantly within a second when there is no checkpointing.

@@ -96,10 +96,13 @@ public class TFIDF {
 			f -> "1/"+ f).reduceByKey( 
 			new Function2<String,String,String>() {
 				public String call(String value1, String value2) {
+
 					String[] value1Splitted = value1.split("/");
 					String[] value2Splitted = value2.split("/");
+
 					Integer value1Numerator = Integer.parseInt(value1Splitted[0]);
 					Integer value2Numerator = Integer.parseInt(value2Splitted[0]);
+					//Add the Numerators
 					String wordCount = Integer.toString(value1Numerator+value2Numerator);
 					String retVal = wordCount+"/"+value1Splitted[1];
 					return (retVal);
@@ -133,6 +136,7 @@ public class TFIDF {
 					String word = x._1.split("@")[0];
 					String document = x._1.split("@")[1];
 					//double TF = wordCount/docSize;
+					//Form the string as per the output requirement we defined above
 					return new Tuple2(word, "1/"+document);
 				}
 			}
@@ -146,7 +150,9 @@ public class TFIDF {
 					String[] value2Splitted = value2.split("/");
 					Integer value1Numerator = Integer.parseInt(value1Splitted[0]);
 					Integer value2Numerator = Integer.parseInt(value2Splitted[0]);
+					//Add the Numerators
 					String numDocsWithWord = Integer.toString(value1Numerator+value2Numerator);
+					//Form the string as per the output requirement we defined above
 					String retVal = numDocsWithWord+"/"+value1Splitted[1] +","+ value2Splitted[1];
 					return (retVal);
 				}
@@ -169,6 +175,7 @@ public class TFIDF {
 					// Output to Arraylist
 					ArrayList ret = new ArrayList();
 					for(String doc : docsList) {
+						//Form the string as per the output requirement we defined above
 						ret.add(new Tuple2( x._1+ "@" +doc ,numDocsString + "/"  + numDocsWithWord));
 					}
 					return ret;
@@ -222,6 +229,7 @@ public class TFIDF {
 				public Tuple2<String,Double> call(Tuple2<String,String> x) {
 					double numDocs = Double.parseDouble(x._2.split("/")[0]);
 					double numDocsWithWord = Double.parseDouble(x._2.split("/")[1]);
+					//Compute the IDF
 					double IDF = Math.log((double)numDocs/numDocsWithWord);
 					return new Tuple2(x._1, IDF);
 				}
@@ -240,6 +248,8 @@ public class TFIDF {
 					Integer value2Numerator = Integer.parseInt(value2Splitted[0]);
 					String numDocsWithWord = Integer.toString(value1Numerator*value2Numerator);
 					String retVal = numDocsWithWord+"/"+value1Splitted[1] +","+ value2Splitted[1];*/
+
+					//Compute the TFIDF by multiplying TF and IDF part
 					Double retVal = value1*value2;
 					return (retVal);
 				}
