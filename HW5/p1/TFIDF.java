@@ -14,7 +14,7 @@ import java.util.*;
  */
 public class TFIDF {
 
-	static boolean DEBUG = True;
+	static boolean DEBUG = true;
 
     public static void main(String[] args) throws Exception {
         // Check for correct usage
@@ -101,7 +101,7 @@ public class TFIDF {
 					Integer value1Numerator = Integer.parseInt(value1Splitted[0]);
 					Integer value2Numerator = Integer.parseInt(value2Splitted[0]);
 					String wordCount = Integer.toString(value1Numerator+value2Numerator);
-					String retVal = wordCount+"/"+value1Splitted[1]
+					String retVal = wordCount+"/"+value1Splitted[1];
 					return (retVal);
 				}
 			}
@@ -158,13 +158,14 @@ public class TFIDF {
 			new PairFlatMapFunction<Tuple2<String,String>,String, String>() {
 				public Iterable<Tuple2<String,String>> call(Tuple2<String,String> x) {
 					// Collect data attributes
-					String[] numDocsWithWord = x._2.split("/");
+					String[] value1Splitted = x._2.split("/");
 					String[] docsList = value1Splitted[1].split(",");
+					String numDocsWithWord = value1Splitted[0];
 					/*String document = filePath[filePath.length-1];
 					String fileContents = x._2;
 					String[] words = fileContents.split("\\s+");
 					int docSize = words.length;*/
-					String numDocsString = numDocs.toString();
+					String numDocsString = Long.toString(numDocs);
 					// Output to Arraylist
 					ArrayList ret = new ArrayList();
 					for(String doc : docsList) {
@@ -232,7 +233,7 @@ public class TFIDF {
 			
 			/************ YOUR CODE HERE ************/
 			new Function2<Double,Double,Double>() {
-				public String call(Double value1, Double value2) {
+				public Double call(Double value1, Double value2) {
 					/*String[] value1Splitted = value1.split("/");
 					String[] value2Splitted = value2.split("/");
 					Integer value1Numerator = Integer.parseInt(value1Splitted[0]);
