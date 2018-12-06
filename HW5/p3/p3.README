@@ -1,3 +1,12 @@
+/*
+Single Author info:
+hmajety  Hari Krishna Majety
+Group info:
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Harshavardhan Reddy Muppidi
+*/
+
 Solution:
 
 For implementing the checkpointing, we removed many other unncessary variables and function calls which we felt irrelevant for the scope of this question. This includes the code for timing the execution and calls to GPU since we were asked to use only the Serial version for this question.

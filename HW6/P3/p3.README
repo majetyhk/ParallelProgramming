@@ -1,0 +1,38 @@
+/*
+Group info:
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Muppidi Harshavardhan Reddy
+*/
+
+This Readme discusses about difference in execution times and Implementation:
+
+Implementation: Basically for the calculation part we are using a new tensor variable which will have additional 3 rows since we have
+implemented over 13 point stencil, we would need 3 rows. Then again it gets detached and attaches again with the next itertion values and
+this continues. 
+
+Incase of 400 iterations:
+Execution Time with lake-horo.py are as follows:
+Elapsed time: 129.813352823 seconds
+Elapsed time: 129.810678959 seconds
+
+While with lake.py we observer it as:
+Elapsed time: 18.5854001045 seconds
+Elapsed time: 18.6046769619 seconds
+
+The possible reasons for the time increase in case of lake-horo would porbably be because of the communications happening at evey iteration 
+and having our new variables assigned. As Hovord implements multi-node/multi-GPU Tensorflow via MPI.
+Therefore these communications to send the last 3 or first 3 rows would be the reason for overhead of time being seen. 
+
+Incase of 100 iterations the times observed are:
+With lake-horo.py
+Elapsed time: 33.0091068745 seconds
+Elapsed time: 33.0046439171 seconds
+
+With lake.py
+Elapsed time: 4.73673510551 seconds
+Elapsed time: 4.71805214882 seconds
+
+So as the iterations increases adversely the number of communications increases as well which is causing the rate of difference to increase
+as well. In case of 100 iterations its around 8 times while for 400 iterations its around 12 times.
+

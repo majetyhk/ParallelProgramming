@@ -1,0 +1,52 @@
+/*
+Group info:
+mreddy2 Muppidi Harshavardhan Reddy
+hmajety  Hari Krishna Majety
+srout Sweta Rout
+mreddy2 Muppidi Harshavardhan Reddy
+*/
+
+This Readme discusses about the CoMD application (a molecular dynamics reference application by LANL) in terms of its 
+checkpointing overhead under DMTCP
+
+Case A: 
+Total Execution Time: 141.1704 seconds
+real	2m21.178s
+user	2m20.673s
+sys	0m0.453s
+
+Case B:
+Total Execution Time: 147.5115 seconds
+real	2m27.607s
+user	2m25.298s
+sys	0m1.577s
+
+Case C:
+Total Execution Time: 521.8893 seconds
+real	0m22.169s
+user	0m19.603s
+sys	0m0.358s
+
+-->What is the overhead of performing one checkpoint?
+As we have Case B with the checkpoint while case A without the checkpoint so the difference of these times would be our overhead. 
+Here we have a overhead of 6.429 seconds due to checkpoints and we will have a total of 3 checkpoints. So we would say each checkpoint
+causes a overhead of 2.143 seconds.
+
+-->What is the overhead of one restart?
+Now to consider the overhead of restart as we know we had 3 checkpoints so that would be 120seconds and restarting it we observed
+22.169 seconds. So total execution time would be 142.169 seconds which is a overhead of 0.991 seconds 
+
+-->How to the "real" times for each case compare to the execution time output by the CoMD code?
+With respect to Case A and Case B the real time are almost similar to the execution time the minute difference is probably the time taken 
+to  write the checkpoint. While in case C it only runs from the the last checkpoint so the real time is only for the remaning part of the 
+code to be executed and we have seen the overhead of it above. 
+
+-->You should see a very large execution time reported by the CoMD code in case C. Why?
+We observe a very large execution time when compared to CASE A & B, this is because even though it runs from the checkpoint to execute
+the remaning part of the code. THe total execution time would be intended to report the actual total time needed to run the complete code
+which considers the start point to be the start of the the CASE B when the program was 1st started. To verify this we have also tested by
+re-running the code but with longer gap between running CASE B and CASE C and we observed the total time for Case C was calculated with start
+time as the start of Case B and end time of Case C. We compared this with the timestamp of case B with that of Case C. 
+For example when we ran with a gap of 16Mins the total time turned out to be 1126.3375 seconds and in the above case we observed it to be 
+521.8893 seconds. 
+

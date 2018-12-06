@@ -1,0 +1,11 @@
+Implemented Algorithm:
+As instructed the root node(rank =0 ) acts as the master and distributes the work across the worker nodes. The distribution is such that the file number 'n' goes to n%(totalWorkers).
+Each node computes the TF part where each process has to count the occurences of terms in the respective documents they are responsible for. They compute the unique words locally and keep count of the numDocsWithWord based on the documents it scanned. As TF part can be calculated without depending on the other documents, these values can be simply gathered at the root node without any need for reduce like operation we perform in hadoop type of architectures. But this would be necessary for numDocsWithWord value in unique_words struct. 
+ Therefore the workers send their values in their local 'obj' and 'unique_word' arrays to the root node for combining and computing the final TFIDF values. The numDocsWithWord value is added looking at all the words gathered at the root and finally the TFIDF values are calculated at the root and printed to a file.
+
+Two new MPI data_types are created to transfer the structs from workers to root.
+
+To add more parallelism to make use of the other processors, we can use programming constructs like OpenMP which would be the simpler approach among the parallelization mechanisms available.
+
+In Hadoop and spark, we were computing TF values which are computed at one node may further be processed in any other node depending on the allocation. Here TF values are merely collected and reduce like operation is only performed on the numDocsWithWord variable alone. Also here the communication is only at once in the end unlike hadoop and spark where the communication is required after every step. But here the process of counting is based on loops and therefore a little time taking than the key based approach in hadoop or spark. 
+
